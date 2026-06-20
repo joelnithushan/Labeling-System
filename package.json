@@ -9,7 +9,13 @@
     "build": "tsc && vite build",
     "electron:build": "npm run build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "rebuild": "electron-rebuild -f -w better-sqlite3"
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:db": "INCLUDE_DB_TESTS=1 vitest run electron/__tests__",
+    "test:all": "INCLUDE_DB_TESTS=1 vitest run"
   },
   "build": {
     "appId": "com.millbusiness.labelingsystem",
@@ -70,6 +76,13 @@
     "typescript": "^5.4.5",
     "vite": "^5.3.1",
     "vite-plugin-electron": "^0.28.7",
-    "vite-plugin-electron-renderer": "^0.14.5"
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vitest": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "jsdom": "^24.1.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.4.6",
+    "@testing-library/user-event": "^14.5.2"
   }
 }

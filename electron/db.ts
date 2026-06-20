@@ -18,7 +18,7 @@ export function getDb(): Database.Database {
   return db
 }
 
-function initSchema(db: Database.Database) {
+export function initSchema(db: Database.Database) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
