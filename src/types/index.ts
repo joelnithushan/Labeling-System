@@ -1,0 +1,107 @@
+export interface Product {
+  id: number
+  name: string
+  category: string
+  weight: string
+  weight_unit: string
+  price: number
+  shelf_life_days: number
+  created_at: string
+}
+
+export interface Barcode {
+  id: number
+  product_id: number | null
+  product_name: string
+  category: string
+  weight: string
+  weight_unit: string
+  price: number
+  serial_number: string
+  barcode_value: string
+  quantity: number
+  mfg_date: string
+  exp_date: string
+  printed_at: string
+}
+
+export interface AppSettings {
+  shop_name: string
+  printer_name: string
+  label_size: string
+  date_format: string
+  address: string
+  phone: string
+}
+
+export interface DashboardStats {
+  total_products: number
+  total_printed: number
+  today_printed: number
+  categories: number
+  recent_barcodes: Barcode[]
+}
+
+export interface PrintJob {
+  product: Product
+  quantity: number
+  mfg_date: string
+  exp_date: string
+  serial_number: string
+}
+
+export type LabelSize = '50x40' | '100x50' | '100x150'
+
+export const CATEGORIES = [
+  'Flour',
+  'Millet',
+  'Grain',
+  'Rice',
+  'Sugar',
+  'Salt',
+  'Spice',
+  'Pulse',
+  'Other',
+] as const
+
+export type Category = (typeof CATEGORIES)[number]
+
+export const CATEGORY_CODES: Record<string, string> = {
+  Flour: 'FLR',
+  Millet: 'MLT',
+  Grain: 'GRN',
+  Rice: 'RCE',
+  Sugar: 'SGR',
+  Salt: 'SLT',
+  Spice: 'SPC',
+  Pulse: 'PLS',
+  Other: 'OTH',
+}
+
+// Window type extension
+declare global {
+  interface Window {
+    electron: {
+      db: {
+        getProducts: () => Promise<Product[]>
+        addProduct: (data: Omit<Product, 'id' | 'created_at'>) => Promise<Product>
+        updateProduct: (id: number, data: Omit<Product, 'id' | 'created_at'>) => Promise<Product>
+        deleteProduct: (id: number) => Promise<{ success: boolean }>
+        getBarcodes: (filters?: { search?: string; date?: string; limit?: number }) => Promise<Barcode[]>
+        addBarcode: (data: Omit<Barcode, 'id' | 'printed_at'>) => Promise<Barcode>
+        getNextSequence: (category: string, date: string) => Promise<number>
+        getSettings: () => Promise<AppSettings>
+        updateSettings: (settings: AppSettings) => Promise<{ success: boolean }>
+        getStats: () => Promise<DashboardStats>
+        exportCSV: () => Promise<{ success: boolean; filePath?: string }>
+      }
+      print: {
+        label: (data: { html: string; printerName: string; labelSize: string }) => Promise<{ success: boolean; error?: string }>
+        getPrinters: () => Promise<{ name: string; displayName: string }[]>
+      }
+      dialog: {
+        saveFile: (options: unknown) => Promise<{ filePath?: string; canceled: boolean }>
+      }
+    }
+  }
+}
