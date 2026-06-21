@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, CheckCircle, Monitor } from 'lucide-react'
+import { Save, CheckCircle, Monitor, Eye, EyeOff } from 'lucide-react'
 import type { AppSettings } from '../types'
 
 const LABEL_SIZES = [
@@ -22,6 +22,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   date_format: 'dd/MM/yyyy',
   address: '',
   phone: '',
+  username: 'admin',
+  password: 'admin',
 }
 
 export default function Settings() {
@@ -30,6 +32,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false)
   const [printers, setPrinters] = useState<{ name: string; displayName: string }[]>([])
   const [loadingPrinters, setLoadingPrinters] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     window.electron.db.getSettings().then(s => setForm(s as AppSettings))
@@ -160,6 +163,48 @@ export default function Settings() {
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
+          </div>
+        </section>
+
+        {/* Login Credentials */}
+        <section className="bg-slate-800 rounded-xl border border-slate-700 p-5 space-y-4">
+          <div>
+            <h2 className="text-white font-semibold">Login Credentials</h2>
+            <p className="text-slate-400 text-xs mt-1">Change username and password for this system</p>
+          </div>
+
+          <div>
+            <label className="block text-slate-300 text-sm mb-1.5">Username</label>
+            <input
+              className="input-field w-full"
+              type="text"
+              autoComplete="username"
+              value={form.username}
+              onChange={e => set('username', e.target.value)}
+              placeholder="Enter username"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-300 text-sm mb-1.5">Password</label>
+            <div className="relative">
+              <input
+                className="input-field w-full pr-10"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={form.password}
+                onChange={e => set('password', e.target.value)}
+                placeholder="Enter password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
         </section>
 

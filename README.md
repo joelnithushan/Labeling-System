@@ -108,11 +108,12 @@ labeling-system/
 │   │   ├── BarcodeTable.tsx   # Serial number history table
 │   │   └── StatCard.tsx       # Dashboard summary card
 │   ├── pages/
+│   │   ├── Login.tsx          # Login screen (no credentials shown)
 │   │   ├── Dashboard.tsx      # Home with stats + recent activity
 │   │   ├── Products.tsx       # Product management
 │   │   ├── PrintLabel.tsx     # Core print screen
 │   │   ├── Barcodes.tsx       # Barcode/serial number history
-│   │   └── Settings.tsx       # App configuration
+│   │   └── Settings.tsx       # App configuration + change credentials
 │   ├── hooks/
 │   │   ├── useProducts.ts     # Product CRUD state
 │   │   └── useBarcodes.ts     # Barcode query state
@@ -238,6 +239,35 @@ Example: `20260621-FLR-00042`
 
 ---
 
+## 🔐 Login Credentials
+
+The app requires a login to protect the system (only the mill owner should access it).
+
+### Default Credentials
+
+| Field | Value |
+|---|---|
+| **Username** | `admin` |
+| **Password** | `admin` |
+
+These credentials are set when the database is created for the first time.
+
+### Changing Credentials on Delivery
+
+When delivering the app to a customer, change the username and password to something unique for that customer:
+
+1. Launch the app and log in with the default credentials
+2. Go to **Settings → Login Credentials**
+3. Enter the new **Username** and **Password**
+4. Click **Save Settings**
+5. The new credentials will be active immediately on the next login
+
+> Credentials are stored in the local SQLite database at:
+> - macOS: `~/Library/Application Support/labeling-system/database.db`
+> - Windows: `%APPDATA%/labeling-system/database.db`
+
+---
+
 ## 🗺️ Roadmap
 
 - [x] Product management
@@ -245,10 +275,10 @@ Example: `20260621-FLR-00042`
 - [x] Barcode serial number tracking
 - [x] Settings (shop name, printer, label size, date format)
 - [x] Barcode history with search + CSV export
+- [x] Login system (change credentials per customer)
 - [ ] Multiple label templates
 - [ ] PDF export of print history
 - [ ] Daily print report
-- [ ] User login (admin / operator)
 
 ---
 
