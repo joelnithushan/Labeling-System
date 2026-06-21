@@ -29,8 +29,6 @@ export const mockElectron = {
       date_format: 'dd/MM/yyyy',
       address: '123 Main St',
       phone: '+94 77 123 4567',
-      username: 'admin',
-      password: 'admin',
     }),
     updateSettings: vi.fn().mockResolvedValue({ success: true }),
     getStats: vi.fn().mockResolvedValue({
@@ -72,8 +70,6 @@ beforeEach(() => {
     date_format: 'dd/MM/yyyy',
     address: '123 Main St',
     phone: '+94 77 123 4567',
-    username: 'admin',
-    password: 'admin',
   })
   mockElectron.db.getStats.mockResolvedValue({
     total_products: 5,

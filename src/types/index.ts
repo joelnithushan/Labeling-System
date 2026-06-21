@@ -32,8 +32,6 @@ export interface AppSettings {
   date_format: string
   address: string
   phone: string
-  username: string
-  password: string
 }
 
 export interface DashboardStats {
