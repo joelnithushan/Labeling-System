@@ -17,9 +17,12 @@ export default function Login({ onLogin }: Props) {
     if (!username.trim() || !password) return
     setError('')
     setLoading(true)
-    const ok = await onLogin(username.trim(), password)
-    if (!ok) {
-      setError('Incorrect username or password.')
+    try {
+      const ok = await onLogin(username.trim(), password)
+      if (!ok) setError('Incorrect username or password.')
+    } catch {
+      setError('Could not connect. Please restart the app.')
+    } finally {
       setLoading(false)
     }
   }
