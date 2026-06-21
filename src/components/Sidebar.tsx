@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Package, Printer, Barcode, Settings, Wheat,
+  LayoutDashboard, Package, Printer, Barcode, Settings, Wheat, LogOut,
 } from 'lucide-react'
 
 const NAV = [
@@ -11,7 +11,11 @@ const NAV = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
-export default function Sidebar() {
+interface Props {
+  onLogout: () => void
+}
+
+export default function Sidebar({ onLogout }: Props) {
   return (
     <aside className="w-56 flex-shrink-0 bg-slate-900 border-r border-slate-700 flex flex-col h-screen">
       {/* Logo */}
@@ -47,8 +51,16 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-slate-700">
-        <p className="text-slate-500 text-xs">Sri Lankan Mill Business</p>
+      <div className="px-3 py-4 border-t border-slate-700 space-y-1">
+        <p className="text-slate-600 text-xs px-3 mb-2">Sri Lankan Mill Business</p>
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium
+                     text-slate-400 hover:text-white hover:bg-red-900/40 transition-colors"
+        >
+          <LogOut size={18} />
+          Sign Out
+        </button>
       </div>
     </aside>
   )
