@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import { beforeEach, vi } from 'vitest'
 
 // ── Mock window.electron (Electron IPC bridge) ────────────────────────────────
 // All pages and hooks call window.electron.db.* and window.electron.print.*
@@ -42,6 +42,58 @@ export const mockElectron = {
     }),
     exportCSV: vi.fn().mockResolvedValue({ success: true }),
   },
+  dataManagement: {
+    exportData: vi.fn().mockResolvedValue({
+      success: true,
+      filePath: '/tmp/system_data.xlsx',
+      timestamp: '2026-06-23T00:00:00.000Z',
+      warnings: [],
+      errors: [],
+      sheetSummary: [],
+    }),
+    previewImport: vi.fn().mockResolvedValue({
+      success: true,
+      filePath: '/tmp/import.xlsx',
+      fileName: 'import.xlsx',
+      extension: '.xlsx',
+      sheets: [],
+      warnings: [],
+      errors: [],
+    }),
+    executeImport: vi.fn().mockResolvedValue({
+      success: true,
+      filePath: '/tmp/import.xlsx',
+      timestamp: '2026-06-23T00:00:00.000Z',
+      importedCount: 0,
+      skippedDuplicates: 0,
+      invalidCount: 0,
+      warnings: [],
+      errors: [],
+      tableSummary: [],
+    }),
+    backup: vi.fn().mockResolvedValue({
+      success: true,
+      backupPath: '/tmp/backup.db',
+      timestamp: '2026-06-23T00:00:00.000Z',
+      warnings: [],
+      errors: [],
+    }),
+    restore: vi.fn().mockResolvedValue({
+      success: true,
+      restoredFrom: '/tmp/backup.db',
+      timestamp: '2026-06-23T00:00:00.000Z',
+      warnings: [],
+      errors: [],
+    }),
+    reset: vi.fn().mockResolvedValue({
+      success: true,
+      backupPath: '/tmp/backup.db',
+      timestamp: '2026-06-23T00:00:00.000Z',
+      warnings: [],
+      errors: [],
+      tableSummary: { clearedTables: [], rowsDeleted: {} },
+    }),
+  },
   print: {
     label: vi.fn().mockResolvedValue({ success: true }),
     getPrinters: vi.fn().mockResolvedValue([
@@ -50,6 +102,7 @@ export const mockElectron = {
   },
   dialog: {
     saveFile: vi.fn().mockResolvedValue({ canceled: false, filePath: '/tmp/export.csv' }),
+    openFile: vi.fn().mockResolvedValue({ canceled: false, filePaths: ['/tmp/backup.db'] }),
   },
 }
 
@@ -83,4 +136,12 @@ beforeEach(() => {
     recent_barcodes: [],
   })
   mockElectron.print.label.mockResolvedValue({ success: true })
+  mockElectron.dataManagement.exportData.mockResolvedValue({
+    success: true,
+    filePath: '/tmp/system_data.xlsx',
+    timestamp: '2026-06-23T00:00:00.000Z',
+    warnings: [],
+    errors: [],
+    sheetSummary: [],
+  })
 })
