@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Package, Printer, Barcode, Settings, Wheat, LogOut,
+  LayoutDashboard, Package, Boxes, Printer, Barcode, Settings, Wheat, LogOut,
 } from 'lucide-react'
 
 const NAV = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/products', icon: Package, label: 'Products' },
+  { to: '/stock', icon: Boxes, label: 'Stock' },
   { to: '/print', icon: Printer, label: 'Print Label' },
   { to: '/barcodes', icon: Barcode, label: 'Barcode History' },
   { to: '/settings', icon: Settings, label: 'Settings' },
