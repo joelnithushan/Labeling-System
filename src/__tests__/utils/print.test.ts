@@ -32,6 +32,8 @@ const settings: AppSettings = {
   date_format: 'dd/MM/yyyy',
   address: '123 Main St',
   phone: '+94 77 000 0000',
+  username: 'admin',
+  password: 'admin',
 }
 
 const mfgDate = new Date('2026-06-21')

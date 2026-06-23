@@ -42,6 +42,7 @@ export interface DashboardStats {
   today_printed: number
   categories: number
   recent_barcodes: Barcode[]
+  low_stock_count: number
 }
 
 export interface PrintJob {
@@ -53,6 +54,27 @@ export interface PrintJob {
 }
 
 export type LabelSize = '50x40' | '100x50' | '100x150'
+
+export type StockEntryType = 'stock_in' | 'stock_out' | 'adjustment'
+
+export interface StockEntry {
+  id: number
+  product_id: number
+  product_name: string
+  type: StockEntryType
+  quantity_change: number   // positive or negative
+  note: string
+  created_at: string
+}
+
+export interface StockSummary {
+  product_id: number
+  product_name: string
+  category: string
+  weight: string
+  weight_unit: string
+  current_stock: number
+}
 
 export const CATEGORIES = [
   'Flour',
@@ -96,6 +118,10 @@ declare global {
         updateSettings: (settings: AppSettings) => Promise<{ success: boolean }>
         getStats: () => Promise<DashboardStats>
         exportCSV: () => Promise<{ success: boolean; filePath?: string }>
+        getStockSummary: () => Promise<StockSummary[]>
+        getStockEntries: (productId?: number) => Promise<StockEntry[]>
+        addStockEntry: (data: { product_id: number; type: 'stock_in' | 'adjustment'; quantity_change: number; note?: string }) => Promise<StockEntry>
+        exportStockCSV: () => Promise<{ success: boolean; filePath?: string }>
       }
       print: {
         label: (data: { html: string; printerName: string; labelSize: string }) => Promise<{ success: boolean; error?: string }>

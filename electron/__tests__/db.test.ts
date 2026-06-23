@@ -166,8 +166,11 @@ describe('barcodes', () => {
 // ── Sequence ──────────────────────────────────────────────────────────────────
 
 describe('getNextSequence', () => {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
   it('returns 1 when no barcodes exist for that category and date', () => {
-    const seq = getNextSequence(db, 'Flour', '2026-06-21')
+    const seq = getNextSequence(db, 'Flour', today)
     expect(seq).toBe(1)
   })
 
@@ -184,7 +187,7 @@ describe('getNextSequence', () => {
       serial_number: 'X2', barcode_value: 'X2', quantity: 1,
       mfg_date: '21/06/2026', exp_date: '21/12/2026',
     })
-    const seq = getNextSequence(db, 'Flour', '2026-06-21')
+    const seq = getNextSequence(db, 'Flour', today)
     expect(seq).toBe(3)
   })
 
@@ -195,7 +198,7 @@ describe('getNextSequence', () => {
       serial_number: 'Y1', barcode_value: 'Y1', quantity: 1,
       mfg_date: '21/06/2026', exp_date: '21/12/2026',
     })
-    const seq = getNextSequence(db, 'Flour', '2026-06-21')
+    const seq = getNextSequence(db, 'Flour', today)
     expect(seq).toBe(1)
   })
 })

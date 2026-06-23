@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import { vi, beforeEach } from 'vitest'
 
 // ── Mock window.electron (Electron IPC bridge) ────────────────────────────────
 // All pages and hooks call window.electron.db.* and window.electron.print.*
