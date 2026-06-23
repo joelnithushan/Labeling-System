@@ -36,6 +36,104 @@ export interface AppSettings {
   password: string
 }
 
+export interface StructuredIssue {
+  code: string
+  message: string
+  severity?: 'error' | 'warning' | 'info'
+  tableName?: string
+  sheetName?: string
+  path?: string
+}
+
+export interface ExportSheetSummary {
+  sheetName: string
+  sourceTable: string
+  rowCount: number
+  columns: string[]
+  maskedColumns: string[]
+  dynamic: boolean
+}
+
+export interface DataExportResult {
+  success: boolean
+  filePath?: string
+  timestamp: string
+  warnings: StructuredIssue[]
+  errors: StructuredIssue[]
+  sheetSummary: ExportSheetSummary[]
+}
+
+export interface ImportSheetPreview {
+  sheetName: string
+  tableName: string
+  headers: string[]
+  rows: Record<string, unknown>[]
+  issues: StructuredIssue[]
+  rowCount: number
+  dynamic: boolean
+  detectedTable?: string
+}
+
+export interface ImportPreviewResult {
+  success: boolean
+  filePath?: string
+  fileName: string
+  extension: '.xlsx' | '.csv'
+  sheets: ImportSheetPreview[]
+  warnings: StructuredIssue[]
+  errors: StructuredIssue[]
+}
+
+export interface ImportTableSummary {
+  sheetName: string
+  tableName: string
+  importedCount: number
+  skippedDuplicates: number
+  invalidCount: number
+  warnings: StructuredIssue[]
+  errors: StructuredIssue[]
+}
+
+export interface ImportExecutionResult {
+  success: boolean
+  filePath?: string
+  timestamp: string
+  importedCount: number
+  skippedDuplicates: number
+  invalidCount: number
+  warnings: StructuredIssue[]
+  errors: StructuredIssue[]
+  tableSummary: ImportTableSummary[]
+}
+
+export interface BackupResult {
+  success: boolean
+  backupPath?: string
+  timestamp: string
+  warnings: StructuredIssue[]
+  errors: StructuredIssue[]
+}
+
+export interface RestoreResult {
+  success: boolean
+  restoredFrom?: string
+  timestamp: string
+  warnings: StructuredIssue[]
+  errors: StructuredIssue[]
+}
+
+export interface ResetResult {
+  success: boolean
+  backupPath?: string
+  timestamp: string
+  warnings: StructuredIssue[]
+  errors: StructuredIssue[]
+  tableSummary: {
+    clearedTables: string[]
+    rowsDeleted: Record<string, number>
+  }
+}
+
 export interface DashboardStats {
   total_products: number
   total_printed: number
@@ -103,6 +201,15 @@ declare global {
       }
       dialog: {
         saveFile: (options: unknown) => Promise<{ filePath?: string; canceled: boolean }>
+        openFile: (options: unknown) => Promise<{ filePaths: string[]; canceled: boolean }>
+      }
+      dataManagement: {
+        exportData: (targetPath?: string) => Promise<DataExportResult>
+        previewImport: (filePath?: string) => Promise<ImportPreviewResult>
+        executeImport: (filePath: string, duplicatePolicy?: 'skip' | 'replace' | 'merge') => Promise<ImportExecutionResult>
+        backup: () => Promise<BackupResult>
+        restore: (backupPath?: string) => Promise<RestoreResult>
+        reset: () => Promise<ResetResult>
       }
     }
   }
