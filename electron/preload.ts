@@ -15,6 +15,15 @@ contextBridge.exposeInMainWorld('electron', {
     getStats: () => ipcRenderer.invoke('db:getStats'),
     exportCSV: () => ipcRenderer.invoke('db:exportCSV'),
   },
+  dataManagement: {
+    exportData: (targetPath?: string) => ipcRenderer.invoke('data:export', targetPath),
+    previewImport: (filePath?: string) => ipcRenderer.invoke('data:import-preview', filePath),
+    executeImport: (filePath: string, duplicatePolicy?: string) =>
+      ipcRenderer.invoke('data:import-execute', filePath, duplicatePolicy),
+    backup: () => ipcRenderer.invoke('data:backup'),
+    restore: (backupPath?: string) => ipcRenderer.invoke('data:restore', backupPath),
+    reset: () => ipcRenderer.invoke('data:reset'),
+  },
   print: {
     label: (data: { html: string; printerName: string; labelSize: string }) =>
       ipcRenderer.invoke('print:label', data),
@@ -22,5 +31,6 @@ contextBridge.exposeInMainWorld('electron', {
   },
   dialog: {
     saveFile: (options: unknown) => ipcRenderer.invoke('dialog:saveFile', options),
+    openFile: (options: unknown) => ipcRenderer.invoke('dialog:openFile', options),
   },
 })
