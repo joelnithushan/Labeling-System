@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld('electron', {
     updateSettings: (settings: unknown) => ipcRenderer.invoke('db:updateSettings', settings),
     getStats: () => ipcRenderer.invoke('db:getStats'),
     exportCSV: () => ipcRenderer.invoke('db:exportCSV'),
+    getStockSummary: () => ipcRenderer.invoke('db:getStockSummary'),
+    getStockEntries: (productId?: number) => ipcRenderer.invoke('db:getStockEntries', productId),
+    addStockEntry: (data: unknown) => ipcRenderer.invoke('db:addStockEntry', data),
+    exportStockCSV: () => ipcRenderer.invoke('db:exportStockCSV'),
   },
   dataManagement: {
     exportData: (targetPath?: string) => ipcRenderer.invoke('data:export', targetPath),

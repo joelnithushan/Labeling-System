@@ -5,6 +5,7 @@ import {
   getDb, getAllProducts, insertProduct, updateProduct, deleteProduct,
   getAllBarcodes, insertBarcode, getNextSequence, exportBarcodesCSV,
   getAllSettings, saveSettings, getStats,
+  getStockSummary, getStockEntries, insertStockEntry, autoDeductStock, exportStockCSV,
 } from './db'
 import { registerDataManagementIpcHandlers } from './dataManagement'
 
@@ -74,7 +75,11 @@ function registerIpcHandlers() {
   })
 
   ipcMain.handle('db:addBarcode', (_, data) => {
-    return insertBarcode(getDb(), data)
+    const result = insertBarcode(getDb(), data)
+    if (data.product_id != null) {
+      autoDeductStock(getDb(), data.product_id, data.quantity || 1)
+    }
+    return result
   })
 
   ipcMain.handle('db:getNextSequence', (_, category, date) => {
@@ -92,6 +97,31 @@ function registerIpcHandlers() {
 
   ipcMain.handle('db:getStats', () => {
     return getStats(getDb())
+  })
+
+  ipcMain.handle('db:getStockSummary', () => {
+    return getStockSummary(getDb())
+  })
+
+  ipcMain.handle('db:getStockEntries', (_, productId) => {
+    return getStockEntries(getDb(), productId)
+  })
+
+  ipcMain.handle('db:addStockEntry', (_, data) => {
+    return insertStockEntry(getDb(), data)
+  })
+
+  ipcMain.handle('db:exportStockCSV', async () => {
+    const csv = exportStockCSV(getDb())
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Export Stock History CSV',
+      defaultPath: `stock-history-${new Date().toISOString().slice(0, 10)}.csv`,
+      filters: [{ name: 'CSV Files', extensions: ['csv'] }],
+    })
+    if (canceled || !filePath) return { success: false }
+    fs.writeFileSync(filePath, csv, 'utf-8')
+    shell.showItemInFolder(filePath)
+    return { success: true, filePath }
   })
 
   ipcMain.handle('db:exportCSV', async () => {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Package, Printer, CalendarCheck, Layers } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Package, Printer, CalendarCheck, Layers, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import StatCard from '../components/StatCard'
 import type { DashboardStats } from '../types'
@@ -24,11 +25,32 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-white text-2xl font-bold">Dashboard</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          {format(new Date(), 'EEEE, dd MMMM yyyy')}
-        </p>
+      {/* Header & Alert */}
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-white text-2xl font-bold">Dashboard</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            {format(new Date(), 'EEEE, dd MMMM yyyy')}
+          </p>
+        </div>
+
+        {stats?.low_stock_count !== undefined && stats.low_stock_count > 0 && (
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3 justify-between animate-fadeIn">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="flex-shrink-0 text-amber-500" size={20} />
+              <div className="text-sm">
+                <span className="font-semibold">Low Stock Warning:</span> There are{' '}
+                <span className="font-bold text-slate-100">{stats.low_stock_count}</span> products with low stock (≤ 10 bags).
+              </div>
+            </div>
+            <Link
+              to="/stock"
+              className="text-xs bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold px-3 py-1.5 rounded-lg transition-colors w-fit"
+            >
+              Manage Stock
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Stats grid */}

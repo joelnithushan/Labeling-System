@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
+import Stock from './pages/Stock'
 import PrintLabel from './pages/PrintLabel'
 import Barcodes from './pages/Barcodes'
 import Settings from './pages/Settings'
@@ -56,6 +57,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/stock" element={<Stock />} />
             <Route path="/print" element={<PrintLabel />} />
             <Route path="/barcodes" element={<Barcodes />} />
             <Route path="/settings" element={<Settings />} />
