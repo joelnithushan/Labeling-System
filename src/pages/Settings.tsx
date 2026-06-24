@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Save, CheckCircle, Monitor, Eye, EyeOff } from 'lucide-react'
 import type { AppSettings } from '../types'
+import DataManagementSection from '../components/settings/DataManagementSection'
 
 const LABEL_SIZES = [
   { value: '50x40', label: '50 × 40 mm (small)' },
@@ -66,7 +67,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-6 max-w-2xl space-y-5">
+    <div className="p-6 max-w-4xl space-y-5">
       <div>
         <h1 className="text-white text-2xl font-bold">Settings</h1>
         <p className="text-slate-400 text-sm mt-1">Configure shop info, printer, and label preferences</p>
@@ -243,6 +244,8 @@ export default function Settings() {
           )}
         </div>
       </form>
+
+      <DataManagementSection />
     </div>
   )
 }

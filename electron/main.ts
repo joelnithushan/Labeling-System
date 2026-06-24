@@ -7,6 +7,7 @@ import {
   getAllSettings, saveSettings, getStats,
   getStockSummary, getStockEntries, insertStockEntry, autoDeductStock, exportStockCSV,
 } from './db'
+import { registerDataManagementIpcHandlers } from './dataManagement'
 
 const isDev = !app.isPackaged
 
@@ -50,6 +51,8 @@ app.on('window-all-closed', () => {
 // ─── IPC: Database ────────────────────────────────────────────────────────────
 
 function registerIpcHandlers() {
+  registerDataManagementIpcHandlers(ipcMain)
+
   ipcMain.handle('db:getProducts', () => {
     return getAllProducts(getDb())
   })
@@ -194,5 +197,9 @@ function registerIpcHandlers() {
 
   ipcMain.handle('dialog:saveFile', async (_, options) => {
     return dialog.showSaveDialog(options)
+  })
+
+  ipcMain.handle('dialog:openFile', async (_, options) => {
+    return dialog.showOpenDialog(options)
   })
 }

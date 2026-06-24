@@ -18,8 +18,8 @@ export default function PrintLabel() {
     date_format: 'dd/MM/yyyy',
     address: '',
     phone: '',
-    username: '',
-    password: '',
+    username: 'admin',
+    password: 'admin',
   })
 
   const [selectedId, setSelectedId] = useState<number | ''>('')

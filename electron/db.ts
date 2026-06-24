@@ -2,20 +2,28 @@ import Database from 'better-sqlite3'
 import { app } from 'electron'
 import path from 'path'
 
-let db: Database.Database
+let db: Database.Database | undefined
+
+export function getDatabasePath(): string {
+  return app.isPackaged
+    ? path.join(app.getPath('userData'), 'database.db')
+    : path.join(process.cwd(), 'database.dev.db')
+}
 
 export function getDb(): Database.Database {
   if (db) return db
 
-  const dbPath = app.isPackaged
-    ? path.join(app.getPath('userData'), 'database.db')
-    : path.join(process.cwd(), 'database.dev.db')
-
-  db = new Database(dbPath)
+  db = new Database(getDatabasePath())
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
   initSchema(db)
   return db
+}
+
+export function closeDb() {
+  if (!db) return
+  db.close()
+  db = undefined
 }
 
 export function initSchema(db: Database.Database) {
