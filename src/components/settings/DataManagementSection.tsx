@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Archive, Download, Upload, RotateCcw, ShieldAlert, Clock3, ExternalLink } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Archive, Upload, Download, RotateCcw, Clock3 } from 'lucide-react'
 import ConfirmModal from '../common/ConfirmModal'
-import ImportPreviewModal from '../common/ImportPreviewModal'
 import ToastHost, { type ToastItem } from '../common/ToastHost'
-import { createBackup, executeImport, exportData, previewImport, resetSystem, restoreBackup } from '../../services/dataManagement'
-import type { ImportPreviewResult } from '../../types'
+import { exportData, executeImport, previewImport, resetSystem } from '../../services/dataManagement'
 
-type ModalState = 'export' | 'backup' | 'restore' | 'reset1' | 'reset2' | null
-type DuplicatePolicy = 'skip' | 'replace' | 'merge'
+type ModalState = 'backup' | 'import-confirm' | 'reset1' | 'reset2' | null
 
 const LAST_BACKUP_KEY = 'data-management:last-backup'
 const LAST_IMPORT_KEY = 'data-management:last-import'
@@ -30,9 +27,7 @@ function formatTimestamp(value?: string | null) {
 
 export default function DataManagementSection() {
   const [modal, setModal] = useState<ModalState>(null)
-  const [restorePath, setRestorePath] = useState<string | null>(null)
-  const [importPreviewData, setImportPreviewData] = useState<ImportPreviewResult | null>(null)
-  const [duplicatePolicy, setDuplicatePolicy] = useState<DuplicatePolicy>('skip')
+  const [pendingImportPath, setPendingImportPath] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const [lastBackup, setLastBackup] = useState<string | null>(null)
@@ -42,16 +37,6 @@ export default function DataManagementSection() {
     setLastBackup(localStorage.getItem(LAST_BACKUP_KEY))
     setLastImport(localStorage.getItem(LAST_IMPORT_KEY))
   }, [])
-
-  const loadingText = useMemo(() => {
-    if (!busy) return ''
-    return busy === 'export' ? 'Preparing export…' :
-      busy === 'import-preview' ? 'Reading import file…' :
-      busy === 'import' ? 'Importing data…' :
-      busy === 'backup' ? 'Creating backup…' :
-      busy === 'restore' ? 'Restoring backup…' :
-      busy === 'reset' ? 'Resetting system…' : ''
-  }, [busy])
 
   function pushToast(title: string, message: string, variant: ToastItem['variant'] = 'info') {
     const toast = makeToast(title, message, variant)
@@ -65,125 +50,84 @@ export default function DataManagementSection() {
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }
 
-  async function handleExport() {
-    setBusy('export')
+  async function handleBackup() {
+    setBusy('backup')
+    setModal(null)
     try {
       const result = await exportData()
       if (result.success) {
-        pushToast('Export complete', `Saved to ${result.filePath ?? 'selected location'}`, 'success')
+        const now = new Date().toISOString()
+        setLastBackup(now)
+        localStorage.setItem(LAST_BACKUP_KEY, now)
+        pushToast('Backup complete', `Data saved to ${result.filePath ?? 'selected location'}`, 'success')
       } else {
-        pushToast('Export failed', result.errors[0]?.message ?? 'Export failed.', 'error')
+        const cancelled = result.errors[0]?.code === 'export_cancelled'
+        if (!cancelled) {
+          pushToast('Backup failed', result.errors[0]?.message ?? 'Backup failed.', 'error')
+        }
       }
     } finally {
       setBusy(null)
-      setModal(null)
     }
   }
 
-  async function handleBackup() {
-    setBusy('backup')
-    try {
-      const result = await createBackup()
-      if (result.success) {
-        setLastBackup(result.timestamp)
-        localStorage.setItem(LAST_BACKUP_KEY, result.timestamp)
-        pushToast('Backup created', result.backupPath ? `Saved to ${result.backupPath}` : 'Backup completed.', 'success')
-      } else {
-        pushToast('Backup failed', result.errors[0]?.message ?? 'Backup failed.', 'error')
-      }
-    } finally {
-      setBusy(null)
-      setModal(null)
-    }
-  }
-
-  async function openRestorePicker() {
+  async function openImportPicker() {
     const selection = await window.electron.dialog.openFile({
-      title: 'Select Backup File',
+      title: 'Select Backup File to Import',
       properties: ['openFile'],
-      filters: [{ name: 'SQLite Database', extensions: ['db'] }],
+      filters: [
+        { name: 'Excel Workbook', extensions: ['xlsx'] },
+        { name: 'CSV File', extensions: ['csv'] },
+      ],
     })
-
     if (selection.canceled || !selection.filePaths[0]) return
-    setRestorePath(selection.filePaths[0])
-    setModal('restore')
+    setPendingImportPath(selection.filePaths[0])
+    setModal('import-confirm')
   }
 
-  async function handleRestore() {
-    if (!restorePath) return
-    setBusy('restore')
-    try {
-      const result = await restoreBackup(restorePath)
-      if (result.success) {
-        pushToast('Restore complete', `Restored from ${result.restoredFrom ?? restorePath}`, 'success')
-      } else {
-        pushToast('Restore failed', result.errors[0]?.message ?? 'Restore failed.', 'error')
-      }
-    } finally {
-      setBusy(null)
-      setModal(null)
-      setRestorePath(null)
-    }
-  }
-
-  async function beginImportPreview() {
-    setBusy('import-preview')
-    try {
-      const preview = await previewImport()
-      if (!preview.success) {
-        pushToast('Import preview failed', preview.errors[0]?.message ?? 'Unable to preview file.', 'error')
-        return
-      }
-      setImportPreviewData(preview)
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  async function handleImportExecute() {
-    if (!importPreviewData?.filePath) return
+  async function handleImport() {
+    if (!pendingImportPath) return
     setBusy('import')
+    setModal(null)
     try {
-      const result = await executeImport(importPreviewData.filePath, duplicatePolicy)
+      const result = await executeImport(pendingImportPath, 'replace')
       if (result.success) {
-        const summary = `Imported ${result.importedCount} rows, skipped ${result.skippedDuplicates}, invalid ${result.invalidCount}`
+        const now = new Date().toISOString()
+        setLastImport(now)
+        localStorage.setItem(LAST_IMPORT_KEY, now)
+        const summary = `Imported ${result.importedCount} rows, skipped ${result.skippedDuplicates}`
         pushToast('Import complete', summary, 'success')
-        setLastImport(result.timestamp)
-        localStorage.setItem(LAST_IMPORT_KEY, result.timestamp)
-        setImportPreviewData(null)
       } else {
         pushToast('Import failed', result.errors[0]?.message ?? 'Import failed.', 'error')
       }
     } finally {
       setBusy(null)
+      setPendingImportPath(null)
     }
   }
 
-  async function handleResetConfirmation() {
-    if (modal === 'reset1') {
-      setModal('reset2')
-      return
-    }
-
+  async function handleReset() {
     setBusy('reset')
+    setModal(null)
     try {
       const result = await resetSystem()
       if (result.success) {
-        setLastBackup(result.timestamp)
-        localStorage.setItem(LAST_BACKUP_KEY, result.timestamp)
-        pushToast('System reset complete', result.backupPath ? `Backup saved at ${result.backupPath}` : 'System reset finished.', 'success')
+        const now = new Date().toISOString()
+        setLastBackup(now)
+        localStorage.setItem(LAST_BACKUP_KEY, now)
+        pushToast('System reset', 'All data has been cleared.', 'success')
       } else {
         pushToast('Reset failed', result.errors[0]?.message ?? 'Reset failed.', 'error')
-        if (result.backupPath) {
-          setLastBackup(result.timestamp)
-          localStorage.setItem(LAST_BACKUP_KEY, result.timestamp)
-        }
       }
     } finally {
       setBusy(null)
-      setModal(null)
     }
   }
+
+  const loadingText =
+    busy === 'backup' ? 'Creating backup…' :
+    busy === 'import' ? 'Importing data…' :
+    busy === 'reset' ? 'Resetting system…' : ''
 
   return (
     <section className="space-y-5 rounded-2xl border border-slate-700 bg-slate-800 p-5">
@@ -192,12 +136,12 @@ export default function DataManagementSection() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-white">Data Management</h2>
-          <p className="mt-1 text-sm text-slate-400">Export, import, backup, restore, and reset system data safely.</p>
+          <p className="mt-1 text-sm text-slate-400">Backup, import, and reset system data safely.</p>
         </div>
         {loadingText && <div className="text-sm text-amber-300">{loadingText}</div>}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-300">
           <div className="flex items-center gap-2 text-slate-100"><Clock3 size={16} /> Last Backup</div>
           <div className="mt-2 text-slate-400">{formatTimestamp(lastBackup)}</div>
@@ -209,122 +153,103 @@ export default function DataManagementSection() {
       </div>
 
       <div className="space-y-3">
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-900/50 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h3 className="font-medium text-white">Export Data</h3>
-            <p className="text-sm text-slate-400">Generate a multi-sheet Excel workbook with all safe system data.</p>
-          </div>
-          <button type="button" onClick={() => setModal('export')} className="btn-primary flex items-center gap-2">
-            <Download size={16} /> Export
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-900/50 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h3 className="font-medium text-white">Import Data</h3>
-            <p className="text-sm text-slate-400">Preview first, then import with duplicate handling and validation.</p>
-          </div>
-          <button type="button" onClick={beginImportPreview} disabled={busy === 'import-preview'} className="btn-secondary flex items-center gap-2">
-            <Upload size={16} /> {busy === 'import-preview' ? 'Opening…' : 'Import'}
-          </button>
-        </div>
-
+        {/* Backup */}
         <div className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-900/50 p-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 className="font-medium text-white">Backup System</h3>
-            <p className="text-sm text-slate-400">Create a full SQLite file backup in one action.</p>
+            <p className="text-sm text-slate-400">Download all system data as an Excel file (.xlsx) for safekeeping.</p>
           </div>
-          <button type="button" onClick={() => setModal('backup')} className="btn-secondary flex items-center gap-2">
-            <Archive size={16} /> Backup
+          <button
+            type="button"
+            onClick={() => setModal('backup')}
+            disabled={!!busy}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Archive size={16} /> {busy === 'backup' ? 'Saving…' : 'Backup'}
           </button>
         </div>
 
+        {/* Import */}
         <div className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-900/50 p-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h3 className="font-medium text-white">Restore Backup</h3>
-            <p className="text-sm text-slate-400">Select a .db backup, confirm, and safely replace current data.</p>
+            <h3 className="font-medium text-white">Import Data</h3>
+            <p className="text-sm text-slate-400">Restore data from a previously backed-up file (.xlsx or .csv).</p>
           </div>
-          <button type="button" onClick={openRestorePicker} className="btn-secondary flex items-center gap-2">
-            <ExternalLink size={16} /> Restore
+          <button
+            type="button"
+            onClick={openImportPicker}
+            disabled={!!busy}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Download size={16} /> {busy === 'import' ? 'Importing…' : 'Import'}
           </button>
         </div>
 
+        {/* Reset */}
         <div className="flex flex-col gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 className="font-medium text-rose-100">Reset System</h3>
-            <p className="text-sm text-rose-200/80">Auto-backup first, then clear tables and reinitialize safely.</p>
+            <p className="text-sm text-rose-200/80">Permanently delete all system data. This cannot be undone.</p>
           </div>
-          <button type="button" onClick={() => setModal('reset1')} className="btn-danger flex items-center gap-2">
-            <RotateCcw size={16} /> Reset
+          <button
+            type="button"
+            onClick={() => setModal('reset1')}
+            disabled={!!busy}
+            className="btn-danger flex items-center gap-2"
+          >
+            <RotateCcw size={16} /> {busy === 'reset' ? 'Resetting…' : 'Reset'}
           </button>
         </div>
       </div>
 
-      <ConfirmModal
-        open={modal === 'export'}
-        title="Export Data"
-        message="Do you want to export all system data?"
-        confirmLabel="Export"
-        cancelLabel="Cancel"
-        loading={busy === 'export'}
-        onCancel={() => setModal(null)}
-        onConfirm={handleExport}
-      />
-
+      {/* Backup confirm */}
       <ConfirmModal
         open={modal === 'backup'}
-        title="Create Backup"
-        message="Create a full SQLite backup now?"
-        confirmLabel="Backup"
+        title="Backup System Data"
+        message="This will download all system data (products, barcodes, settings) as an Excel file. Continue?"
+        confirmLabel="Backup Now"
         cancelLabel="Cancel"
         loading={busy === 'backup'}
         onCancel={() => setModal(null)}
         onConfirm={handleBackup}
       />
 
+      {/* Import confirm */}
       <ConfirmModal
-        open={modal === 'restore'}
-        title="Restore Backup"
-        message={restorePath ? `Restoring will replace all current data. Continue?\n\nSelected file: ${restorePath}` : 'Restoring will replace all current data. Continue?'}
-        confirmLabel="Restore"
-        cancelLabel="No"
+        open={modal === 'import-confirm'}
+        title="Import Data"
+        message={`Importing will overwrite existing records with data from the selected file.\n\nFile: ${pendingImportPath ?? ''}\n\nAre you sure you want to continue?`}
+        confirmLabel="Yes, Import"
+        cancelLabel="Cancel"
         confirmVariant="danger"
-        loading={busy === 'restore'}
-        onCancel={() => { setModal(null); setRestorePath(null) }}
-        onConfirm={handleRestore}
+        loading={busy === 'import'}
+        onCancel={() => { setModal(null); setPendingImportPath(null) }}
+        onConfirm={handleImport}
       />
 
+      {/* Reset — step 1 */}
       <ConfirmModal
         open={modal === 'reset1'}
         title="Reset System"
-        message="Are you sure you want to reset the system?"
-        confirmLabel="Continue"
+        message="Are you sure you want to reset the system? All data will be permanently deleted."
+        confirmLabel="Yes, Continue"
         cancelLabel="Cancel"
         confirmVariant="danger"
         onCancel={() => setModal(null)}
         onConfirm={() => setModal('reset2')}
       />
 
+      {/* Reset — step 2 (final confirm) */}
       <ConfirmModal
         open={modal === 'reset2'}
         title="Confirm Permanent Reset"
-        message="All existing data will be permanently deleted."
-        confirmLabel="Yes Reset"
-        cancelLabel="No"
+        message="This is your final warning. All products, barcodes, and records will be permanently deleted and cannot be recovered.\n\nType YES to confirm."
+        confirmLabel="Delete All Data"
+        cancelLabel="No, Go Back"
         confirmVariant="danger"
         loading={busy === 'reset'}
         onCancel={() => setModal(null)}
-        onConfirm={handleResetConfirmation}
-      />
-
-      <ImportPreviewModal
-        open={Boolean(importPreviewData)}
-        preview={importPreviewData}
-        duplicatePolicy={duplicatePolicy}
-        importing={busy === 'import'}
-        onDuplicatePolicyChange={setDuplicatePolicy}
-        onImport={handleImportExecute}
-        onCancel={() => setImportPreviewData(null)}
+        onConfirm={handleReset}
       />
     </section>
   )

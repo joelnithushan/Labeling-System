@@ -79,6 +79,12 @@ export function initSchema(db: Database.Database) {
     INSERT OR IGNORE INTO settings VALUES ('phone', '');
     INSERT OR IGNORE INTO settings VALUES ('username', 'admin');
     INSERT OR IGNORE INTO settings VALUES ('password', 'admin');
+    INSERT OR IGNORE INTO settings VALUES ('logo', '');
+    INSERT OR IGNORE INTO settings VALUES ('theme', 'dark');
+    INSERT OR IGNORE INTO settings VALUES ('label_net_wt', 'NET WT');
+    INSERT OR IGNORE INTO settings VALUES ('label_price', 'PRICE');
+    INSERT OR IGNORE INTO settings VALUES ('label_mfg', 'Mfg Date');
+    INSERT OR IGNORE INTO settings VALUES ('label_exp', 'Exp Date');
   `)
 }
 

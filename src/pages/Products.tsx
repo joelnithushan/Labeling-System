@@ -89,7 +89,12 @@ export default function Products() {
               </span>
 
               {/* Product name */}
-              <h3 className="text-white font-semibold mt-2.5 mb-1 leading-snug">{product.name}</h3>
+              <h3
+                className="text-white font-semibold mt-2.5 mb-1 leading-snug"
+                style={{ fontFamily: "'Noto Sans Tamil', 'Inter', sans-serif" }}
+              >
+                {product.name}
+              </h3>
 
               {/* Details */}
               <div className="space-y-1 text-sm text-slate-400">
@@ -100,10 +105,6 @@ export default function Products() {
                 <div className="flex justify-between">
                   <span>Price</span>
                   <span className="text-amber-400 font-medium">Rs. {product.price.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Shelf Life</span>
-                  <span className="text-slate-200">{product.shelf_life_days} days</span>
                 </div>
               </div>
 

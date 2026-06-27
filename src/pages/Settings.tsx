@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { Save, CheckCircle, Monitor, Eye, EyeOff } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Save, CheckCircle, Monitor, Eye, EyeOff, Upload, X, Sun, Moon } from 'lucide-react'
 import type { AppSettings } from '../types'
 import DataManagementSection from '../components/settings/DataManagementSection'
+import TamilInput from '../components/TamilInput'
 
 const LABEL_SIZES = [
   { value: '50x40', label: '50 × 40 mm (small)' },
@@ -25,6 +26,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   phone: '',
   username: 'admin',
   password: 'admin',
+  logo: '',
+  theme: 'dark',
+  label_net_wt: 'NET WT',
+  label_price: 'PRICE',
+  label_mfg: 'Mfg Date',
+  label_exp: 'Exp Date',
 }
 
 export default function Settings() {
@@ -32,6 +39,17 @@ export default function Settings() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [printers, setPrinters] = useState<{ name: string; displayName: string }[]>([])
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      set('logo', reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
   const [loadingPrinters, setLoadingPrinters] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -44,12 +62,28 @@ export default function Settings() {
     setSaved(false)
   }
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('theme-light', form.theme === 'light')
+  }, [form.theme])
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        handleSave(e as unknown as React.FormEvent)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [form])
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     try {
       await window.electron.db.updateSettings(form)
       setSaved(true)
+      window.dispatchEvent(new CustomEvent('settingsUpdated'))
       setTimeout(() => setSaved(false), 3000)
     } finally {
       setSaving(false)
@@ -80,20 +114,20 @@ export default function Settings() {
 
           <div>
             <label className="block text-slate-300 text-sm mb-1.5">Shop / Business Name *</label>
-            <input
+            <TamilInput
               className="input-field w-full"
               value={form.shop_name}
-              onChange={e => set('shop_name', e.target.value)}
+              onChange={v => set('shop_name', v)}
               placeholder="e.g. Nithushan's Mill"
             />
           </div>
 
           <div>
             <label className="block text-slate-300 text-sm mb-1.5">Address (optional)</label>
-            <input
+            <TamilInput
               className="input-field w-full"
               value={form.address}
-              onChange={e => set('address', e.target.value)}
+              onChange={v => set('address', v)}
               placeholder="e.g. 123 Main Street, Colombo"
             />
           </div>
@@ -105,6 +139,50 @@ export default function Settings() {
               value={form.phone}
               onChange={e => set('phone', e.target.value)}
               placeholder="e.g. +94 77 123 4567"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-300 text-sm mb-1.5">Shop Logo (optional)</label>
+            <div className="flex items-center gap-3">
+              {form.logo ? (
+                <div className="relative">
+                  <img
+                    src={form.logo}
+                    alt="Logo"
+                    className="h-16 w-16 object-contain rounded-lg border border-slate-600 bg-white p-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { set('logo', ''); if (logoInputRef.current) logoInputRef.current.value = '' }}
+                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : (
+                <div className="h-16 w-16 rounded-lg border-2 border-dashed border-slate-600 flex items-center justify-center text-slate-500">
+                  <Upload size={20} />
+                </div>
+              )}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  className="btn-secondary text-sm flex items-center gap-2"
+                >
+                  <Upload size={14} />
+                  {form.logo ? 'Change Logo' : 'Upload Logo'}
+                </button>
+                <p className="text-slate-500 text-xs mt-1">PNG, JPG or SVG. Appears as watermark on labels.</p>
+              </div>
+            </div>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleLogoUpload}
             />
           </div>
         </section>
@@ -209,9 +287,38 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Date format */}
+        {/* Preferences */}
         <section className="bg-slate-800 rounded-xl border border-slate-700 p-5 space-y-4">
           <h2 className="text-white font-semibold">Preferences</h2>
+
+          <div>
+            <label className="block text-slate-300 text-sm mb-1.5">Appearance</label>
+            <div className="flex rounded-lg overflow-hidden border border-slate-600">
+              <button
+                type="button"
+                onClick={() => set('theme', 'light')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors ${
+                  form.theme === 'light'
+                    ? 'bg-amber-500 text-slate-900'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sun size={14} /> Light
+              </button>
+              <button
+                type="button"
+                onClick={() => set('theme', 'dark')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors ${
+                  form.theme !== 'light'
+                    ? 'bg-amber-500 text-slate-900'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Moon size={14} /> Dark
+              </button>
+            </div>
+          </div>
+
           <div>
             <label className="block text-slate-300 text-sm mb-1.5">Date Format</label>
             <select

@@ -34,6 +34,12 @@ export interface AppSettings {
   phone: string
   username: string
   password: string
+  logo: string
+  theme: string
+  label_net_wt: string
+  label_price: string
+  label_mfg: string
+  label_exp: string
 }
 
 export interface StructuredIssue {

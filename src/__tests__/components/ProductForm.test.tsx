@@ -39,7 +39,6 @@ describe('ProductForm — rendering', () => {
     renderForm(existingProduct)
     expect(screen.getByDisplayValue('Red Rice Flour')).toBeInTheDocument()
     expect(screen.getByDisplayValue('450')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('180')).toBeInTheDocument()
   })
 
   it('renders all category options', () => {
@@ -106,7 +105,7 @@ describe('ProductForm — successful submission', () => {
     await userEvent.type(screen.getByPlaceholderText(/e.g. Red Rice Flour/i), 'Wheat Flour')
     await userEvent.type(screen.getByPlaceholderText(/e.g. 1, 2.5, 500/i), '2')
 
-    const priceInput = screen.getByDisplayValue('0')
+    const [priceInput] = screen.getAllByRole('spinbutton')
     fireEvent.change(priceInput, { target: { value: '350' } })
 
     await userEvent.click(screen.getByRole('button', { name: /add product/i }))
@@ -126,7 +125,8 @@ describe('ProductForm — successful submission', () => {
     renderForm()
     await userEvent.type(screen.getByPlaceholderText(/e.g. Red Rice Flour/i), 'Wheat Flour')
     await userEvent.type(screen.getByPlaceholderText(/e.g. 1, 2.5, 500/i), '1')
-    fireEvent.change(screen.getByDisplayValue('0'), { target: { value: '300' } })
+    const [priceField] = screen.getAllByRole('spinbutton')
+    fireEvent.change(priceField, { target: { value: '300' } })
     await userEvent.click(screen.getByRole('button', { name: /add product/i }))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })

@@ -15,8 +15,8 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    minWidth: 1100,
+    minHeight: 680,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -157,13 +157,30 @@ function registerIpcHandlers() {
         },
       })
 
+      // Embed NotoSansTamil so Tamil text renders on any system
+      let fontFaceStyle = ''
+      try {
+        const fontPath = isDev
+          ? path.join(process.cwd(), 'public/fonts/NotoSansTamil-Regular.ttf')
+          : path.join(__dirname, '../dist/fonts/NotoSansTamil-Regular.ttf')
+        const fontBase64 = fs.readFileSync(fontPath).toString('base64')
+        fontFaceStyle = `@font-face {
+          font-family: 'Noto Sans Tamil';
+          src: url('data:font/truetype;base64,${fontBase64}') format('truetype');
+          font-weight: 400;
+        }`
+      } catch {
+        // Font file not found — print continues with system fonts
+      }
+
       const fullHtml = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
 <style>
+  ${fontFaceStyle}
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; }
+  body { font-family: 'Noto Sans Tamil', Arial, sans-serif; }
   @media print {
     @page { margin: 0; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

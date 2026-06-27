@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Printer, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Printer, RotateCcw, CheckCircle, AlertCircle, Package } from 'lucide-react'
 import { addDays, format } from 'date-fns'
 import { useProducts } from '../hooks/useProducts'
 import LabelPreview from '../components/LabelPreview'
+import TamilInput from '../components/TamilInput'
 import { generateSerial } from '../utils/serial'
-import { buildLabelHtml } from '../utils/print'
-import type { AppSettings, Product } from '../types'
+import { buildLabelHtml, DEFAULT_LABEL_FIELDS, type LabelFields } from '../utils/print'
+import type { AppSettings, Product, StockSummary } from '../types'
 
 type PrintStatus = 'idle' | 'printing' | 'success' | 'error'
 
@@ -20,26 +21,83 @@ export default function PrintLabel() {
     phone: '',
     username: 'admin',
     password: 'admin',
+    logo: '',
+    theme: 'dark',
   })
 
   const [selectedId, setSelectedId] = useState<number | ''>('')
   const [mfgDate, setMfgDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [expDateOverride, setExpDateOverride] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [serialNumber, setSerialNumber] = useState('')
   const [status, setStatus] = useState<PrintStatus>('idle')
   const [statusMsg, setStatusMsg] = useState('')
   const [generatingSerial, setGeneratingSerial] = useState(false)
+  const [stockSummaries, setStockSummaries] = useState<StockSummary[]>([])
+  const [labelFields, setLabelFields] = useState<LabelFields>(DEFAULT_LABEL_FIELDS)
+  const [labelFieldsLoaded, setLabelFieldsLoaded] = useState(false)
+  const settingsRef = useRef<AppSettings | null>(null)
+  const [logoOpacity, setLogoOpacity] = useState(0.2)
+  const [logoSize, setLogoSize] = useState(85)
 
   const selectedProduct = products.find(p => p.id === selectedId) ?? null
+  const currentStock = stockSummaries.find(s => s.product_id === selectedId)?.current_stock ?? null
 
-  const expDate = selectedProduct
-    ? addDays(new Date(mfgDate), selectedProduct.shelf_life_days)
-    : addDays(new Date(mfgDate), 180)
+  const shelfDays = selectedProduct?.shelf_life_days ?? 180
+  const autoExpDate = addDays(new Date(mfgDate), Math.max(shelfDays, 1))
+  const expDate = expDateOverride ? new Date(expDateOverride) : autoExpDate
+  const minExpDate = format(addDays(new Date(mfgDate), 1), 'yyyy-MM-dd')
 
-  // Load settings on mount
+
+  // Load settings and stock on mount
   useEffect(() => {
-    window.electron.db.getSettings().then(s => setSettings(s as AppSettings))
+    window.electron.db.getSettings().then(s => {
+      const appSettings = s as AppSettings
+      setSettings(appSettings)
+      settingsRef.current = appSettings
+      setLabelFields({
+        netWtLabel: appSettings.label_net_wt || DEFAULT_LABEL_FIELDS.netWtLabel,
+        priceLabel: appSettings.label_price || DEFAULT_LABEL_FIELDS.priceLabel,
+        mfgLabel: appSettings.label_mfg || DEFAULT_LABEL_FIELDS.mfgLabel,
+        expLabel: appSettings.label_exp || DEFAULT_LABEL_FIELDS.expLabel,
+      })
+      setLabelFieldsLoaded(true)
+    })
+    window.electron.db.getStockSummary().then(s => setStockSummaries(s as StockSummary[]))
   }, [])
+
+  // Auto-save label fields to DB whenever they change (debounced)
+  useEffect(() => {
+    if (!labelFieldsLoaded || !settingsRef.current) return
+    const timer = setTimeout(() => {
+      window.electron.db.updateSettings({
+        ...settingsRef.current!,
+        label_net_wt: labelFields.netWtLabel,
+        label_price: labelFields.priceLabel,
+        label_mfg: labelFields.mfgLabel,
+        label_exp: labelFields.expLabel,
+      })
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [labelFields, labelFieldsLoaded])
+
+  // Auto-fill quantity from current stock when product changes
+  useEffect(() => {
+    if (selectedId === '') return
+    const stock = stockSummaries.find(s => s.product_id === selectedId)
+    if (stock && stock.current_stock > 0) {
+      setQuantity(stock.current_stock)
+    } else {
+      setQuantity(1)
+    }
+  }, [selectedId, stockSummaries])
+
+  // Clear expiry override if it becomes invalid when mfg date changes
+  useEffect(() => {
+    if (expDateOverride && expDateOverride <= mfgDate) {
+      setExpDateOverride('')
+    }
+  }, [mfgDate])
 
   // Regenerate serial when product or mfg date changes
   const refreshSerial = useCallback(async () => {
@@ -68,6 +126,9 @@ export default function PrintLabel() {
         mfgDate: new Date(mfgDate),
         expDate,
         quantity,
+        labelFields,
+        logoOpacity,
+        logoSize,
       })
 
       // Save barcode record first
@@ -110,12 +171,44 @@ export default function PrintLabel() {
   const canPrint = !!selectedProduct && !!serialNumber && !generatingSerial && status !== 'printing'
 
   return (
-    <div className="p-6 flex gap-6 h-[calc(100vh-64px)]">
+    <div className="p-6 flex gap-6 h-[calc(100vh-64px)] min-w-0">
       {/* Left: Controls */}
-      <div className="w-80 flex-shrink-0 space-y-5 overflow-y-auto">
+      <div className="w-80 flex-shrink-0 space-y-5 overflow-y-auto pr-3">
         <div>
           <h1 className="text-white text-2xl font-bold">Print Label</h1>
           <p className="text-slate-400 text-sm mt-1">Configure and print a label</p>
+        </div>
+
+        {/* Shop info (editable) */}
+        <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-3 space-y-2">
+          <p className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-1">Shop Info</p>
+          <div>
+            <label className="block text-slate-400 text-xs mb-1">Shop Name</label>
+            <TamilInput
+              className="input-field w-full text-sm py-1"
+              value={settings.shop_name}
+              onChange={v => setSettings(prev => ({ ...prev, shop_name: v }))}
+              placeholder="Shop name"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-400 text-xs mb-1">Address</label>
+            <TamilInput
+              className="input-field w-full text-sm py-1"
+              value={settings.address}
+              onChange={v => setSettings(prev => ({ ...prev, address: v }))}
+              placeholder="Address (optional)"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-400 text-xs mb-1">Phone</label>
+            <input
+              className="input-field w-full text-sm py-1"
+              value={settings.phone}
+              onChange={e => setSettings(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="Phone (optional)"
+            />
+          </div>
         </div>
 
         {/* Product select */}
@@ -138,32 +231,68 @@ export default function PrintLabel() {
 
         {/* Manufacturing date */}
         <div>
-          <label className="block text-slate-300 text-sm mb-1.5">Manufacturing Date</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-slate-300 text-sm">Manufacturing Date</label>
+            <button
+              type="button"
+              onClick={() => setMfgDate(format(new Date(), 'yyyy-MM-dd'))}
+              className="text-xs text-slate-500 hover:text-amber-400 transition-colors"
+            >
+              Today
+            </button>
+          </div>
           <input
             type="date"
-            className="input-field w-full"
+            className="input-field w-36"
             value={mfgDate}
             onChange={e => setMfgDate(e.target.value)}
           />
         </div>
 
-        {/* Expiry (calculated) */}
+        {/* Expiry date */}
         <div>
-          <label className="block text-slate-300 text-sm mb-1.5">Expiry Date (auto-calculated)</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-slate-300 text-sm">Expiry Date</label>
+            {expDateOverride && (
+              <button
+                type="button"
+                onClick={() => setExpDateOverride('')}
+                className="text-xs text-slate-500 hover:text-amber-400 transition-colors"
+              >
+                Auto ({shelfDays}d)
+              </button>
+            )}
+            {!expDateOverride && (
+              <span className="text-xs text-slate-500">Auto ({shelfDays}d shelf life)</span>
+            )}
+          </div>
           <input
-            type="text"
-            readOnly
-            className="input-field w-full bg-slate-700/50 cursor-not-allowed text-slate-400"
-            value={selectedProduct ? format(expDate, 'yyyy-MM-dd') : '—'}
+            type="date"
+            min={minExpDate}
+            className="input-field w-36"
+            value={expDateOverride || format(autoExpDate, 'yyyy-MM-dd')}
+            onChange={e => {
+              const val = e.target.value
+              if (val && val <= mfgDate) {
+                setExpDateOverride(minExpDate)
+              } else {
+                setExpDateOverride(val)
+              }
+            }}
           />
-          {selectedProduct && (
-            <p className="text-slate-500 text-xs mt-1">{selectedProduct.shelf_life_days} day shelf life</p>
-          )}
         </div>
 
         {/* Quantity */}
         <div>
-          <label className="block text-slate-300 text-sm mb-1.5">Quantity (copies)</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-slate-300 text-sm">Quantity (copies)</label>
+            {currentStock !== null && (
+              <span className={`flex items-center gap-1 text-xs font-medium ${currentStock <= 0 ? 'text-red-400' : currentStock <= 10 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                <Package size={12} />
+                Stock: {currentStock}
+              </span>
+            )}
+          </div>
           <input
             type="number"
             min={1}
@@ -172,7 +301,11 @@ export default function PrintLabel() {
             value={quantity}
             onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
           />
+          {currentStock !== null && currentStock <= 0 && (
+            <p className="text-red-400 text-xs mt-1">This product is out of stock.</p>
+          )}
         </div>
+
 
         {/* Serial number */}
         <div>
@@ -191,6 +324,60 @@ export default function PrintLabel() {
             {generatingSerial ? 'Generating…' : serialNumber || '—'}
           </div>
         </div>
+
+        {/* Label field names */}
+        <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-3 space-y-2">
+          <p className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-1">Label Field Names</p>
+          {(
+            [
+              { key: 'netWtLabel', placeholder: 'NET WT' },
+              { key: 'priceLabel', placeholder: 'PRICE' },
+              { key: 'mfgLabel',   placeholder: 'Mfg Date' },
+              { key: 'expLabel',   placeholder: 'Exp Date' },
+            ] as { key: keyof LabelFields; placeholder: string }[]
+          ).map(({ key, placeholder }) => (
+            <div key={key} className="flex items-center gap-2">
+              <span className="text-slate-500 text-xs w-16 flex-shrink-0">{placeholder}</span>
+              <TamilInput
+                className="input-field flex-1 text-sm py-1"
+                value={labelFields[key]}
+                placeholder={placeholder}
+                onChange={v => setLabelFields(prev => ({ ...prev, [key]: v }))}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Logo watermark controls */}
+        {settings.logo && (
+          <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-3 space-y-3">
+            <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">Logo Watermark</p>
+            <div>
+              <div className="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Size</span>
+                <span>{logoSize}%</span>
+              </div>
+              <input
+                type="range" min={20} max={100} step={5}
+                value={logoSize}
+                onChange={e => setLogoSize(Number(e.target.value))}
+                className="w-full accent-amber-500"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Opacity</span>
+                <span>{Math.round(logoOpacity * 100)}%</span>
+              </div>
+              <input
+                type="range" min={5} max={60} step={5}
+                value={Math.round(logoOpacity * 100)}
+                onChange={e => setLogoOpacity(Number(e.target.value) / 100)}
+                className="w-full accent-amber-500"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Printer info */}
         <div className="bg-slate-700/30 rounded-lg px-3 py-2.5 text-sm">
@@ -233,6 +420,9 @@ export default function PrintLabel() {
           serialNumber={serialNumber}
           mfgDate={new Date(mfgDate)}
           expDate={expDate}
+          labelFields={labelFields}
+          logoOpacity={logoOpacity}
+          logoSize={logoSize}
         />
       </div>
     </div>

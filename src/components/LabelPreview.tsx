@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import JsBarcode from 'jsbarcode'
 import { format } from 'date-fns'
 import type { Product, AppSettings } from '../types'
+import { DEFAULT_LABEL_FIELDS, type LabelFields } from '../utils/print'
 
 interface Props {
   product: Product | null
@@ -9,9 +10,13 @@ interface Props {
   serialNumber: string
   mfgDate: Date
   expDate: Date
+  labelFields?: LabelFields
+  logoOpacity?: number
+  logoSize?: number
 }
 
-export default function LabelPreview({ product, settings, serialNumber, mfgDate, expDate }: Props) {
+export default function LabelPreview({ product, settings, serialNumber, mfgDate, expDate, labelFields, logoOpacity = 0.2, logoSize = 85 }: Props) {
+  const lf: LabelFields = { ...DEFAULT_LABEL_FIELDS, ...labelFields }
   const barcodeRef = useRef<SVGSVGElement>(null)
   const dateFormat = settings.date_format || 'dd/MM/yyyy'
   const [wMm, hMm] = (settings.label_size || '100x50').split('x').map(Number)
@@ -56,15 +61,37 @@ export default function LabelPreview({ product, settings, serialNumber, mfgDate,
         className="bg-white border-2 border-slate-300 rounded shadow-xl overflow-hidden"
       >
         <div
-          className="w-full h-full flex flex-col bg-white text-black"
+          className="w-full h-full flex flex-col bg-white text-black relative"
           style={{ padding: isSmall ? '3px 4px' : '5px 7px', fontFamily: 'Arial, sans-serif' }}
         >
-          {/* ── Shop name ── */}
-          <div
-            className="text-center font-extrabold uppercase tracking-widest border-b-2 border-black pb-0.5 mb-1"
-            style={{ fontSize: fs('7px', '12px') }}
-          >
-            {settings.shop_name || 'My Mill Shop'}
+          {settings.logo && (
+            <img
+              src={settings.logo}
+              alt=""
+              style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: `${logoSize}%`, height: `${logoSize}%`,
+                objectFit: 'contain', opacity: logoOpacity,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+          {/* ── Shop name + address + phone ── */}
+          <div className="text-center border-b-2 border-black pb-0.5 mb-1">
+            <div className="font-extrabold uppercase tracking-widest" style={{ fontSize: fs('7px', '12px') }}>
+              {settings.shop_name || 'My Mill Shop'}
+            </div>
+            {settings.address && (
+              <div className="text-gray-500" style={{ fontSize: fs('4.5px', '7px') }}>
+                {settings.address}
+              </div>
+            )}
+            {settings.phone && (
+              <div className="text-gray-500" style={{ fontSize: fs('4.5px', '7px') }}>
+                {settings.phone}
+              </div>
+            )}
           </div>
 
           {/* ── Product name ── */}
@@ -81,10 +108,10 @@ export default function LabelPreview({ product, settings, serialNumber, mfgDate,
             style={{ fontSize: fs('6.5px', '9px') }}
           >
             <span
-              className="bg-gray-800 text-white font-bold px-1 py-0.5"
+              className="bg-gray-100 text-gray-600 font-bold px-1 py-0.5 border-r border-gray-300"
               style={{ fontSize: fs('5.5px', '7.5px'), letterSpacing: '0.02em' }}
             >
-              NET WT
+              {lf.netWtLabel}
             </span>
             <span className="flex-1 text-center font-semibold">
               {product.weight} {product.weight_unit}
@@ -97,10 +124,10 @@ export default function LabelPreview({ product, settings, serialNumber, mfgDate,
             style={{ fontSize: fs('6.5px', '9px') }}
           >
             <span
-              className="bg-gray-800 text-white font-bold px-1 py-0.5"
+              className="bg-gray-100 text-gray-600 font-bold px-1 py-0.5 border-r border-gray-300"
               style={{ fontSize: fs('5.5px', '7.5px'), letterSpacing: '0.02em' }}
             >
-              PRICE
+              {lf.priceLabel}
             </span>
             <span className="flex-1 text-center font-semibold">
               Rs. {Number(product.price).toFixed(2)}
@@ -113,14 +140,14 @@ export default function LabelPreview({ product, settings, serialNumber, mfgDate,
             style={{ fontSize: fs('5.5px', '8px') }}
           >
             <div className="border border-gray-300 rounded px-1 py-0.5">
-              <span className="font-bold text-gray-500 uppercase" style={{ fontSize: fs('4.5px', '6.5px') }}>
-                Mfg Date
+              <span className="font-bold text-gray-500" style={{ fontSize: fs('4.5px', '6.5px') }}>
+                {lf.mfgLabel}
               </span>
               <div className="font-semibold">{format(mfgDate, dateFormat)}</div>
             </div>
             <div className="border border-gray-300 rounded px-1 py-0.5">
-              <span className="font-bold text-gray-500 uppercase" style={{ fontSize: fs('4.5px', '6.5px') }}>
-                Exp Date
+              <span className="font-bold text-gray-500" style={{ fontSize: fs('4.5px', '6.5px') }}>
+                {lf.expLabel}
               </span>
               <div className="font-semibold">{format(expDate, dateFormat)}</div>
             </div>
@@ -138,14 +165,6 @@ export default function LabelPreview({ product, settings, serialNumber, mfgDate,
           >
             {serialNumber}
           </div>
-          {settings.phone && (
-            <div
-              className="text-center text-gray-400"
-              style={{ fontSize: fs('4px', '6px') }}
-            >
-              {settings.phone}
-            </div>
-          )}
         </div>
       </div>
 
