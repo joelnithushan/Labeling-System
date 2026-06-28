@@ -28,6 +28,13 @@ export default function App() {
     setIsLoggedIn(false)
   }
 
+  // Apply saved theme on startup
+  useEffect(() => {
+    window.electron.db.getSettings().then(s => {
+      document.documentElement.classList.toggle('theme-light', s.theme === 'light')
+    })
+  }, [])
+
   // Keep state in sync if localStorage is changed elsewhere (e.g. another tab)
   useEffect(() => {
     function onStorage(e: StorageEvent) {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Download, Calendar, X } from 'lucide-react'
+import { Search, Upload, Calendar, X } from 'lucide-react'
 import { useBarcodes } from '../hooks/useBarcodes'
 import BarcodeTable from '../components/BarcodeTable'
 
@@ -35,7 +35,7 @@ export default function Barcodes() {
           disabled={exporting}
           className="btn-secondary flex items-center gap-2"
         >
-          <Download size={16} />
+          <Upload size={16} />
           {exporting ? 'Exporting…' : 'Export CSV'}
         </button>
       </div>
@@ -64,7 +64,7 @@ export default function Barcodes() {
           <Calendar size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="date"
-            className="input-field pl-8"
+            className="input-field pl-8 pr-14"
             value={date}
             onChange={e => setDate(e.target.value)}
             title="Filter by printed date"
@@ -72,7 +72,7 @@ export default function Barcodes() {
           {date && (
             <button
               onClick={() => setDate('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
             >
               <X size={14} />
             </button>

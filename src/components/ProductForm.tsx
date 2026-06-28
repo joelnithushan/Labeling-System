@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { Product } from '../types'
 import { CATEGORIES } from '../types'
+import TamilInput from './TamilInput'
 
 interface Props {
   product?: Product | null
@@ -81,10 +82,10 @@ export default function ProductForm({ product, onSave, onClose }: Props) {
 
           <div>
             <label className="block text-slate-300 text-sm mb-1.5">Product Name *</label>
-            <input
+            <TamilInput
               className="input-field w-full"
               value={form.name}
-              onChange={e => set('name', e.target.value)}
+              onChange={v => set('name', v)}
               placeholder="e.g. Red Rice Flour"
               autoFocus
             />
@@ -127,28 +128,15 @@ export default function ProductForm({ product, onSave, onClose }: Props) {
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-slate-300 text-sm mb-1.5">Price (Rs.) *</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                className="input-field w-full"
-                value={form.price}
-                onChange={e => set('price', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-slate-300 text-sm mb-1.5">Shelf Life (days)</label>
-              <input
-                type="number"
-                min="1"
-                className="input-field w-full"
-                value={form.shelf_life_days}
-                onChange={e => set('shelf_life_days', parseInt(e.target.value) || 180)}
-              />
-            </div>
+          <div>
+            <label className="block text-slate-300 text-sm mb-1.5">Price (Rs.) *</label>
+            <input
+              type="number"
+              min="0"
+              className="input-field w-full"
+              value={form.price || ''}
+              onChange={e => set('price', Number(e.target.value))}
+            />
           </div>
 
           <div className="flex gap-3 pt-2">

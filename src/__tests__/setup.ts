@@ -31,6 +31,12 @@ export const mockElectron = {
       phone: '+94 77 123 4567',
       username: 'admin',
       password: 'admin',
+      logo: '',
+      theme: 'dark',
+      label_net_wt: 'NET WT',
+      label_price: 'PRICE',
+      label_mfg: 'Mfg Date',
+      label_exp: 'Exp Date',
     }),
     updateSettings: vi.fn().mockResolvedValue({ success: true }),
     getStats: vi.fn().mockResolvedValue({

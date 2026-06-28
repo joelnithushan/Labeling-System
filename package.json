@@ -6,6 +6,7 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
+    "seed": "ELECTRON_RUN_AS_NODE=1 electron scripts/seed.cjs",
     "build": "tsc && vite build",
     "electron:build": "npm run build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -53,6 +54,7 @@
     }
   },
   "dependencies": {
+    "@fontsource/noto-sans-tamil": "^5.2.7",
     "better-sqlite3": "^11.10.0",
     "date-fns": "^3.6.0",
     "exceljs": "^4.4.0",

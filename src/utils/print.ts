@@ -16,6 +16,20 @@ function generateBarcodeSvg(value: string, isSmall: boolean): string {
   return new XMLSerializer().serializeToString(svg)
 }
 
+export interface LabelFields {
+  netWtLabel: string
+  priceLabel: string
+  mfgLabel: string
+  expLabel: string
+}
+
+export const DEFAULT_LABEL_FIELDS: LabelFields = {
+  netWtLabel: 'NET WT',
+  priceLabel: 'PRICE',
+  mfgLabel: 'Mfg Date',
+  expLabel: 'Exp Date',
+}
+
 export function buildLabelHtml(params: {
   product: Product
   settings: AppSettings
@@ -23,8 +37,12 @@ export function buildLabelHtml(params: {
   mfgDate: Date
   expDate: Date
   quantity: number
+  labelFields?: LabelFields
+  logoOpacity?: number
+  logoSize?: number
 }): string {
-  const { product, settings, serialNumber, mfgDate, expDate } = params
+  const { product, settings, serialNumber, mfgDate, expDate, labelFields, logoOpacity = 0.2, logoSize = 85 } = params
+  const lf: LabelFields = { ...DEFAULT_LABEL_FIELDS, ...labelFields }
   const dateFormat = settings.date_format || 'dd/MM/yyyy'
   const [wMm, hMm] = (settings.label_size || '100x50').split('x').map(Number)
   const isSmall = wMm <= 60
@@ -35,25 +53,33 @@ export function buildLabelHtml(params: {
 
   const fs = (s: number, n: number) => `${isSmall ? s : n}pt`
 
+  const logoStyle = settings.logo
+    ? `position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+       width:${logoSize}%; height:${logoSize}%; object-fit:contain; opacity:${logoOpacity}; pointer-events:none;`
+    : ''
+
   return `
 <div style="
   width:${wMm}mm; height:${hMm}mm;
-  font-family:Arial,sans-serif;
+  font-family:'Noto Sans Tamil',Arial,sans-serif;
   background:#fff; color:#000;
   display:flex; flex-direction:column;
   box-sizing:border-box;
   padding:${isSmall ? '2mm 2.5mm' : '3mm 4mm'};
-  overflow:hidden;
+  overflow:hidden; position:relative;
 ">
+  ${settings.logo ? `<img src="${settings.logo}" style="${logoStyle}" alt="" />` : ''}
 
-  <!-- Shop name -->
+  <!-- Shop name + phone -->
   <div style="
-    text-align:center; font-weight:800;
-    text-transform:uppercase; letter-spacing:1px;
-    font-size:${fs(6, 11)};
+    text-align:center;
     border-bottom:2px solid #000;
     padding-bottom:1mm; margin-bottom:1.5mm;
-  ">${esc(settings.shop_name)}</div>
+  ">
+    <div style="font-weight:800; text-transform:uppercase; letter-spacing:1px; font-size:${fs(6, 11)};">${esc(settings.shop_name)}</div>
+    ${settings.address ? `<div style="font-size:${fs(4.5, 7)}; color:#555; margin-top:0.2mm;">${esc(settings.address)}</div>` : ''}
+    ${settings.phone ? `<div style="font-size:${fs(4.5, 7)}; color:#444; margin-top:0.2mm;">${esc(settings.phone)}</div>` : ''}
+  </div>
 
   <!-- Product name -->
   <div style="
@@ -69,10 +95,11 @@ export function buildLabelHtml(params: {
     margin-bottom:1mm; overflow:hidden;
   ">
     <div style="
-      background:#222; color:#fff; font-weight:700;
+      background:#f3f4f6; color:#4b5563; font-weight:700;
+      border-right:1px solid #d1d5db;
       font-size:${fs(5, 7)}; padding:0.5mm 1.5mm;
       letter-spacing:0.5px; display:flex; align-items:center;
-    ">NET WT</div>
+    ">${esc(lf.netWtLabel)}</div>
     <div style="
       flex:1; text-align:center; font-weight:600;
       font-size:${fs(6, 9)}; padding:0.5mm;
@@ -87,10 +114,11 @@ export function buildLabelHtml(params: {
     margin-bottom:1.5mm; overflow:hidden;
   ">
     <div style="
-      background:#222; color:#fff; font-weight:700;
+      background:#f3f4f6; color:#4b5563; font-weight:700;
+      border-right:1px solid #d1d5db;
       font-size:${fs(5, 7)}; padding:0.5mm 1.5mm;
       letter-spacing:0.5px; display:flex; align-items:center;
-    ">PRICE</div>
+    ">${esc(lf.priceLabel)}</div>
     <div style="
       flex:1; text-align:center; font-weight:600;
       font-size:${fs(6, 9)}; padding:0.5mm;
@@ -104,11 +132,11 @@ export function buildLabelHtml(params: {
     gap:1mm; margin-bottom:1.5mm;
   ">
     <div style="border:1px solid #ccc; border-radius:2px; padding:1mm;">
-      <div style="font-size:${fs(4.5, 6.5)}pt; color:#888; text-transform:uppercase; font-weight:700; letter-spacing:0.3px;">Mfg Date</div>
+      <div style="font-size:${fs(4.5, 6.5)}pt; color:#888; font-weight:700; letter-spacing:0.3px;">${esc(lf.mfgLabel)}</div>
       <div style="font-size:${fs(6, 9)}; font-weight:600; margin-top:0.3mm;">${mfgStr}</div>
     </div>
     <div style="border:1px solid #ccc; border-radius:2px; padding:1mm;">
-      <div style="font-size:${fs(4.5, 6.5)}pt; color:#888; text-transform:uppercase; font-weight:700; letter-spacing:0.3px;">Exp Date</div>
+      <div style="font-size:${fs(4.5, 6.5)}pt; color:#888; font-weight:700; letter-spacing:0.3px;">${esc(lf.expLabel)}</div>
       <div style="font-size:${fs(6, 9)}; font-weight:600; margin-top:0.3mm;">${expStr}</div>
     </div>
   </div>
@@ -125,7 +153,6 @@ export function buildLabelHtml(params: {
     letter-spacing:0.5px;
   ">${esc(serialNumber)}</div>
 
-  ${settings.phone ? `<div style="text-align:center;font-size:${fs(4, 6)};color:#999;margin-top:0.3mm;">${esc(settings.phone)}</div>` : ''}
 </div>`
 }
 
