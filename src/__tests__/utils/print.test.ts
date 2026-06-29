@@ -34,6 +34,12 @@ const settings: AppSettings = {
   phone: '+94 77 000 0000',
   username: 'admin',
   password: 'admin',
+  logo: '',
+  theme: 'dark',
+  label_net_wt: 'Net Wt',
+  label_price: 'Price',
+  label_mfg: 'Mfg',
+  label_exp: 'Exp',
 }
 
 const mfgDate = new Date('2026-06-21')
