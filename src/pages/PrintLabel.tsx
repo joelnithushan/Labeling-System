@@ -23,6 +23,10 @@ export default function PrintLabel() {
     password: 'admin',
     logo: '',
     theme: 'dark',
+    label_net_wt: 'Net Wt',
+    label_price: 'Price',
+    label_mfg: 'Mfg',
+    label_exp: 'Exp',
   })
 
   const [selectedId, setSelectedId] = useState<number | ''>('')

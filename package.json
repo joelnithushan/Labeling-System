@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Mill Label Printing System for Sri Lankan mill businesses",
+  "author": "Joel Nithushan",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -10,7 +11,7 @@
     "build": "tsc && vite build",
     "electron:build": "npm run build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "electron-builder install-app-deps",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -22,6 +23,9 @@
     "appId": "com.millbusiness.labelingsystem",
     "productName": "Mill Label System",
     "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ],
     "directories": {
       "output": "release"
     },
@@ -29,28 +33,31 @@
       "dist/**/*",
       "dist-electron/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "node_modules/better-sqlite3/build/Release/",
-        "to": "app.asar.unpacked/node_modules/better-sqlite3/build/Release/",
-        "filter": [
-          "*.node"
-        ]
-      }
-    ],
     "win": {
-      "target": "nsis",
-      "icon": "public/icon.ico"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "public/icon.icns"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "public/icon.ico",
-      "uninstallerIcon": "public/icon.ico"
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mill Label System"
+    },
+    "portable": {
+      "artifactName": "MillLabelSystem-Portable.exe"
     }
   },
   "dependencies": {
@@ -78,7 +85,6 @@
     "autoprefixer": "^10.4.19",
     "electron": "^31.7.7",
     "electron-builder": "^24.13.3",
-    "electron-rebuild": "^3.2.9",
     "jsdom": "^24.1.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
