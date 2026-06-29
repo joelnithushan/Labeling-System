@@ -9,6 +9,7 @@ import {
   getDefinitionBySourceTable,
   getExportableColumns,
   getExportableDefinitions,
+  getImportableDefinitions,
   getExportSheetNames,
   getRegisteredSourceTables,
   isExportBlockedColumn,
@@ -579,15 +580,21 @@ function getLiveTableDefinition(db: Database.Database, tableName: string): Table
   })
 }
 
+const IMPORT_BLOCKLIST_SHEETS = new Set(['export info'])
+
 function buildImportCandidates(db: Database.Database) {
   const definitions = [...getExportableDefinitions(), ...getImportableDefinitions()]
   const bySheet = new Map<string, TableDefinition>()
+  const registeredSourceTables = new Set(getRegisteredSourceTables())
 
+  // Registry definitions take priority — they have carefully crafted column settings
   for (const definition of definitions) {
     bySheet.set(definition.sheetName.trim().toLowerCase(), definition)
   }
 
+  // Live table definitions are added only for tables NOT already covered by the registry
   for (const table of getLiveUserTables(db)) {
+    if (registeredSourceTables.has(table.name)) continue
     const liveDefinition = getLiveTableDefinition(db, table.name)
     bySheet.set(table.name.trim().toLowerCase(), liveDefinition)
     bySheet.set(liveDefinition.sheetName.trim().toLowerCase(), liveDefinition)
@@ -597,6 +604,8 @@ function buildImportCandidates(db: Database.Database) {
 }
 
 function findImportDefinition(db: Database.Database, sheetName: string, headers: string[]) {
+  if (IMPORT_BLOCKLIST_SHEETS.has(sheetName.trim().toLowerCase())) return undefined
+
   const candidates = buildImportCandidates(db)
   const exact = candidates.get(sheetName.trim().toLowerCase())
   if (exact) return exact
@@ -928,9 +937,11 @@ export async function executeImportFile(filePath: string, duplicatePolicy: Dupli
   try {
     const parsed = await readImportSource(filePath)
     const db = getDb()
+    console.log('[import] file parsed, sheets:', parsed.sheets.map(s => `${s.sheetName}(${s.rows.length})`).join(', '))
 
     for (const sheet of parsed.sheets) {
       const definition = findImportDefinition(db, sheet.sheetName, sheet.headers)
+      console.log(`[import] sheet "${sheet.sheetName}" → definition: ${definition?.key ?? 'NONE'}, rows: ${sheet.rows.length}`)
       const sheetWarnings: StructuredIssue[] = []
       const sheetErrors: StructuredIssue[] = []
       let sheetImported = 0
@@ -1022,6 +1033,7 @@ export async function executeImportFile(filePath: string, duplicatePolicy: Dupli
       tableSummary,
     }
   } catch (error) {
+    console.error('[import] executeImportFile threw:', error)
     errors.push({
       code: 'import_failed',
       message: error instanceof Error ? error.message : 'Failed to execute import.',
@@ -1258,7 +1270,12 @@ export function registerDataManagementIpcHandlers(ipcMain: IpcMain) {
   })
 
   ipcMain.handle('data:import-execute', async (_event, filePath: string, duplicatePolicy?: DuplicatePolicy) => {
-    return executeImportFile(filePath, duplicatePolicy ?? 'skip')
+    console.log('[IPC import-execute] called with:', filePath, 'policy:', duplicatePolicy)
+    const result = await executeImportFile(filePath, duplicatePolicy ?? 'skip')
+    console.log('[IPC import-execute] result: success=%s imported=%s invalid=%s errors=%s',
+      result.success, result.importedCount, result.invalidCount,
+      JSON.stringify(result.errors))
+    return result
   })
 
   ipcMain.handle('data:backup', () => createManualBackup())
