@@ -159,7 +159,7 @@ export interface PrintJob {
 
 export type LabelSize = '50x40' | '100x50' | '100x150'
 
-export type StockEntryType = 'stock_in' | 'stock_out' | 'adjustment'
+export type StockEntryType = 'stock_in' | 'stock_out' | 'adjustment' | 'wastage' | 'return' | 'vehicle_loading' | 'vehicle_return'
 
 export interface StockEntry {
   id: number
@@ -224,7 +224,7 @@ declare global {
         exportCSV: () => Promise<{ success: boolean; filePath?: string }>
         getStockSummary: () => Promise<StockSummary[]>
         getStockEntries: (productId?: number) => Promise<StockEntry[]>
-        addStockEntry: (data: { product_id: number; type: 'stock_in' | 'adjustment'; quantity_change: number; note?: string }) => Promise<StockEntry>
+        addStockEntry: (data: { product_id: number; type: StockEntryType; quantity_change: number; note?: string }) => Promise<StockEntry>
         exportStockCSV: () => Promise<{ success: boolean; filePath?: string }>
       }
       print: {
