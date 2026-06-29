@@ -64,7 +64,7 @@ export function initSchema(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS stock_entries (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       product_id INTEGER NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('stock_in', 'stock_out', 'adjustment')),
+      type TEXT NOT NULL CHECK(type IN ('stock_in', 'stock_out', 'adjustment', 'wastage', 'return', 'vehicle_loading', 'vehicle_return')),
       quantity_change INTEGER NOT NULL,
       note TEXT DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
@@ -86,6 +86,27 @@ export function initSchema(db: Database.Database) {
     INSERT OR IGNORE INTO settings VALUES ('label_mfg', 'Mfg Date');
     INSERT OR IGNORE INTO settings VALUES ('label_exp', 'Exp Date');
   `)
+
+  // Check if migration is needed for stock_entries check constraint
+  const tableSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='stock_entries'").get() as { sql: string } | undefined
+  if (tableSql && !tableSql.sql.includes('wastage')) {
+    db.transaction(() => {
+      db.exec('ALTER TABLE stock_entries RENAME TO stock_entries_old')
+      db.exec(`
+        CREATE TABLE stock_entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          product_id INTEGER NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('stock_in', 'stock_out', 'adjustment', 'wastage', 'return', 'vehicle_loading', 'vehicle_return')),
+          quantity_change INTEGER NOT NULL,
+          note TEXT DEFAULT '',
+          created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+          FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+        );
+      `)
+      db.exec('INSERT INTO stock_entries (id, product_id, type, quantity_change, note, created_at) SELECT id, product_id, type, quantity_change, note, created_at FROM stock_entries_old')
+      db.exec('DROP TABLE stock_entries_old')
+    })()
+  }
 }
 
 // ─── Products ────────────────────────────────────────────────────────────────
@@ -111,10 +132,10 @@ export function updateProduct(db: Database.Database, id: number, data: {
   price: number; shelf_life_days: number;
 }) {
   db.prepare(`
-    UPDATE products
-    SET name=@name, category=@category, weight=@weight, weight_unit=@weight_unit,
-        price=@price, shelf_life_days=@shelf_life_days
-    WHERE id=@id
+    UPDATE products 
+    SET name = @name, category = @category, weight = @weight, weight_unit = @weight_unit, 
+        price = @price, shelf_life_days = @shelf_life_days
+    WHERE id = ?
   `).run({ ...data, id })
   return db.prepare('SELECT * FROM products WHERE id = ?').get(id)
 }
@@ -129,22 +150,25 @@ export function getAllBarcodes(db: Database.Database, filters?: {
   search?: string; date?: string; limit?: number;
 }) {
   let query = 'SELECT * FROM barcodes'
+  const conditions: string[] = []
   const params: unknown[] = []
-  const where: string[] = []
 
   if (filters?.search) {
-    where.push('(product_name LIKE ? OR serial_number LIKE ? OR category LIKE ?)')
+    conditions.push('(product_name LIKE ? OR serial_number LIKE ? OR category LIKE ?)')
     const s = `%${filters.search}%`
     params.push(s, s, s)
   }
   if (filters?.date) {
-    where.push("date(printed_at) = date(?)")
+    conditions.push("date(printed_at) = date(?, 'localtime')")
     params.push(filters.date)
   }
 
-  if (where.length) query += ' WHERE ' + where.join(' AND ')
-  query += ' ORDER BY printed_at DESC'
-  if (filters?.limit) query += ` LIMIT ${filters.limit}`
+  if (conditions.length) query += ' WHERE ' + conditions.join(' AND ')
+  query += ' ORDER BY printed_at DESC, id DESC'
+  if (filters?.limit) {
+    query += ' LIMIT ?'
+    params.push(filters.limit)
+  }
 
   return db.prepare(query).all(...params)
 }
@@ -169,10 +193,10 @@ export function insertBarcode(db: Database.Database, data: {
 
 export function getNextSequence(db: Database.Database, category: string, date: string): number {
   const row = db.prepare(`
-    SELECT COUNT(*) as cnt FROM barcodes
+    SELECT COUNT(*) as count FROM barcodes
     WHERE category = ? AND date(printed_at) = date(?)
-  `).get(category, date) as { cnt: number }
-  return (row?.cnt ?? 0) + 1
+  `).get(category, date) as { count: number }
+  return (row?.count ?? 0) + 1
 }
 
 export function exportBarcodesCSV(db: Database.Database): string {
@@ -235,7 +259,7 @@ export function getStockEntries(db: Database.Database, productId?: number) {
 
 export function insertStockEntry(db: Database.Database, data: {
   product_id: number;
-  type: 'stock_in' | 'adjustment';
+  type: 'stock_in' | 'stock_out' | 'adjustment' | 'wastage' | 'return' | 'vehicle_loading' | 'vehicle_return';
   quantity_change: number;
   note?: string;
 }) {
