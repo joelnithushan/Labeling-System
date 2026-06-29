@@ -26,7 +26,7 @@ export default function Stock() {
   // Form states
   const [selectedProductId, setSelectedProductId] = useState<string>('')
   const [entryType, setEntryType] = useState<'stock_in' | 'adjustment'>('stock_in')
-  const [adjustmentSubtype, setAdjustmentSubtype] = useState<'wastage' | 'return' | 'other'>('wastage')
+  const [adjustmentSubtype, setAdjustmentSubtype] = useState<'wastage' | 'return' | 'vehicle_loading' | 'vehicle_return'>('wastage')
   const [quantity, setQuantity] = useState<string>('')
   const [note, setNote] = useState<string>('')
 
@@ -101,18 +101,18 @@ export default function Stock() {
         } else if (adjustmentSubtype === 'return') {
           finalQty = qtyNum // Returns increase stock
           if (!finalNote) finalNote = 'Customer return stock restoration'
-        } else {
-          // Other adjustment - can be negative or positive depending on input (default to subtraction, but prompt user)
-          // We default to reduction for safety unless user explicitly notes it. Let's make it positive/negative by checking sign.
-          // Wait! For 'other', let's subtract by default since adjustment is usually correction, or we can add a toggle.
-          // Let's keep it simple: "Other" is negative by default, but let's allow positive if they mention it. Actually,
-          // let's put a simple select: "Increase (+)" or "Decrease (-)" for "other" adjustments.
+        } else if (adjustmentSubtype === 'vehicle_loading') {
+          finalQty = -qtyNum // Vehicle loading reduces stock
+          if (!finalNote) finalNote = 'Goods loaded onto vehicle for delivery/distribution'
+        } else if (adjustmentSubtype === 'vehicle_return') {
+          finalQty = qtyNum // Vehicle return increases stock
+          if (!finalNote) finalNote = 'Unsold goods returned from vehicle back to warehouse'
         }
       }
 
       await window.electron.db.addStockEntry({
         product_id: parseInt(selectedProductId, 10),
-        type: entryType,
+        type: entryType === 'stock_in' ? 'stock_in' : adjustmentSubtype,
         quantity_change: finalQty,
         note: finalNote
       })
@@ -334,64 +334,72 @@ export default function Stock() {
               <div className="flex flex-col gap-1.5 bg-slate-900/60 p-3 rounded-lg border border-slate-700/60 animate-fadeIn">
                 <label className="text-slate-400 text-xs font-medium uppercase tracking-wider">Adjustment Reason</label>
                 <div className="space-y-2 mt-1">
-                  <label className="flex items-center gap-2.5 text-sm text-slate-200 cursor-pointer">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
                       type="radio"
                       name="adjustment_type"
                       checked={adjustmentSubtype === 'wastage'}
                       onChange={() => setAdjustmentSubtype('wastage')}
-                      className="accent-amber-500"
+                      className="accent-amber-500 mt-0.5 flex-shrink-0"
                     />
-                    <span>Wastage / Damage (Reduces stock)</span>
+                    <span className="flex flex-col">
+                      <span className="text-sm font-semibold text-slate-200">Wastage</span>
+                      <span className="text-xs text-slate-500 leading-tight">Reduces stock — damage/loss</span>
+                    </span>
                   </label>
-                  <label className="flex items-center gap-2.5 text-sm text-slate-200 cursor-pointer">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
                       type="radio"
                       name="adjustment_type"
                       checked={adjustmentSubtype === 'return'}
                       onChange={() => setAdjustmentSubtype('return')}
-                      className="accent-amber-500"
+                      className="accent-amber-500 mt-0.5 flex-shrink-0"
                     />
-                    <span>Returned Goods (Increases stock)</span>
+                    <span className="flex flex-col">
+                      <span className="text-sm font-semibold text-slate-200">Return</span>
+                      <span className="text-xs text-slate-500 leading-tight">Increases stock — customer return</span>
+                    </span>
                   </label>
-                  <label className="flex items-center gap-2.5 text-sm text-slate-200 cursor-pointer">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
                       type="radio"
                       name="adjustment_type"
-                      checked={adjustmentSubtype === 'other'}
-                      onChange={() => setAdjustmentSubtype('other')}
-                      className="accent-amber-500"
+                      checked={adjustmentSubtype === 'vehicle_loading'}
+                      onChange={() => setAdjustmentSubtype('vehicle_loading')}
+                      className="accent-amber-500 mt-0.5 flex-shrink-0"
                     />
-                    <span>Other Corrections</span>
+                    <span className="flex flex-col">
+                      <span className="text-sm font-semibold text-slate-200">Vehicle Loading</span>
+                      <span className="text-xs text-slate-500 leading-tight">Stock Out — reduces stock</span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="adjustment_type"
+                      checked={adjustmentSubtype === 'vehicle_return'}
+                      onChange={() => setAdjustmentSubtype('vehicle_return')}
+                      className="accent-amber-500 mt-0.5 flex-shrink-0"
+                    />
+                    <span className="flex flex-col">
+                      <span className="text-sm font-semibold text-slate-200">Vehicle Return</span>
+                      <span className="text-xs text-slate-500 leading-tight">Stock In — increases stock</span>
+                    </span>
                   </label>
                 </div>
-                {adjustmentSubtype === 'other' && (
-                  <p className="text-[11px] text-slate-400 mt-2">
-                    Note: For general corrections, use negative quantity to reduce stock (e.g. Recount losses) or positive to add.
-                  </p>
-                )}
               </div>
             )}
 
             {/* Quantity */}
             <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center">
-                <label className="text-slate-300 text-sm font-medium">Quantity (Bags)</label>
-                {entryType === 'adjustment' && adjustmentSubtype === 'other' && (
-                  <span className="text-[10px] text-amber-400 font-semibold uppercase">Supports negative numbers</span>
-                )}
-              </div>
+              <label className="text-slate-300 text-sm font-medium">Quantity (Bags)</label>
               <input
-                type={entryType === 'adjustment' && adjustmentSubtype === 'other' ? 'text' : 'number'}
-                min={entryType === 'adjustment' && adjustmentSubtype === 'other' ? undefined : '1'}
+                type="number"
+                min="1"
                 placeholder={
                   entryType === 'stock_in'
                     ? 'Enter delivery amount'
-                    : adjustmentSubtype === 'wastage'
-                    ? 'Wasted bags count'
-                    : adjustmentSubtype === 'return'
-                    ? 'Returned bags count'
-                    : 'Use negative (-) for reductions, e.g. -5'
+                    : 'Bags count'
                 }
                 className="input-field w-full"
                 value={quantity}
@@ -404,15 +412,7 @@ export default function Stock() {
             <div className="flex flex-col gap-1.5">
               <label className="text-slate-300 text-sm font-medium">Note / Reason</label>
               <textarea
-                placeholder={
-                  entryType === 'stock_in'
-                    ? 'Supplier invoice, delivery notes, etc.'
-                    : adjustmentSubtype === 'wastage'
-                    ? 'Reason, e.g., Water leakage damage'
-                    : adjustmentSubtype === 'return'
-                    ? 'Reason, e.g., Customer over-ordered returns'
-                    : 'Recount discrepancies, audit details, etc.'
-                }
+                placeholder="Reason / note (optional)"
                 className="input-field w-full min-h-[80px] py-2 resize-none"
                 value={note}
                 onChange={e => setNote(e.target.value)}
@@ -473,20 +473,29 @@ export default function Stock() {
                   {filteredEntries.map(entry => {
                     let typeText = 'Stock In'
                     let typeClass = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    let qtyClass = 'text-emerald-400 font-bold'
-                    let qtyPrefix = '+'
 
                     if (entry.type === 'stock_out') {
                       typeText = 'Label Printed'
                       typeClass = 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      qtyClass = 'text-rose-400 font-bold'
-                      qtyPrefix = '' // Negative sign is already inside the database entry
                     } else if (entry.type === 'adjustment') {
                       typeText = 'Adjustment'
                       typeClass = 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                      qtyClass = entry.quantity_change < 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'
-                      qtyPrefix = entry.quantity_change > 0 ? '+' : ''
+                    } else if (entry.type === 'wastage') {
+                      typeText = 'Wastage'
+                      typeClass = 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    } else if (entry.type === 'return') {
+                      typeText = 'Return'
+                      typeClass = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    } else if (entry.type === 'vehicle_loading') {
+                      typeText = 'Vehicle Loading'
+                      typeClass = 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    } else if (entry.type === 'vehicle_return') {
+                      typeText = 'Vehicle Return'
+                      typeClass = 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                     }
+
+                    const qtyClass = entry.quantity_change < 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'
+                    const qtyPrefix = entry.quantity_change > 0 ? '+' : ''
 
                     return (
                       <tr
