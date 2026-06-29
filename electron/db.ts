@@ -135,7 +135,7 @@ export function updateProduct(db: Database.Database, id: number, data: {
     UPDATE products 
     SET name = @name, category = @category, weight = @weight, weight_unit = @weight_unit, 
         price = @price, shelf_life_days = @shelf_life_days
-    WHERE id = ?
+    WHERE id = @id
   `).run({ ...data, id })
   return db.prepare('SELECT * FROM products WHERE id = ?').get(id)
 }
