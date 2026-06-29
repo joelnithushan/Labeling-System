@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Save, CheckCircle, Monitor, Eye, EyeOff, Upload, X, Sun, Moon } from 'lucide-react'
+import { Save, CheckCircle, Monitor, Eye, EyeOff, Upload, X, Sun, Moon, Phone, MessageCircle } from 'lucide-react'
 import type { AppSettings } from '../types'
 import DataManagementSection from '../components/settings/DataManagementSection'
 import TamilInput from '../components/TamilInput'
@@ -24,6 +24,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   date_format: 'dd/MM/yyyy',
   address: '',
   phone: '',
+  whatsapp: '',
   username: 'admin',
   password: 'admin',
   logo: '',
@@ -133,11 +134,27 @@ export default function Settings() {
           </div>
 
           <div>
-            <label className="block text-slate-300 text-sm mb-1.5">Phone (optional)</label>
+            <label className="flex items-center gap-1.5 text-slate-300 text-sm mb-1.5">
+              <Phone size={14} className="text-slate-400" />
+              Call Number (optional)
+            </label>
             <input
               className="input-field w-full"
               value={form.phone}
               onChange={e => set('phone', e.target.value)}
+              placeholder="e.g. +94 77 123 4567"
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-1.5 text-slate-300 text-sm mb-1.5">
+              <MessageCircle size={14} className="text-emerald-400" />
+              WhatsApp Number (optional)
+            </label>
+            <input
+              className="input-field w-full"
+              value={form.whatsapp}
+              onChange={e => set('whatsapp', e.target.value)}
               placeholder="e.g. +94 77 123 4567"
             />
           </div>

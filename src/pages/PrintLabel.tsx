@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Printer, RotateCcw, CheckCircle, AlertCircle, Package } from 'lucide-react'
+import { Printer, RotateCcw, CheckCircle, AlertCircle, Package, Phone, MessageCircle } from 'lucide-react'
 import { addDays, format } from 'date-fns'
 import { useProducts } from '../hooks/useProducts'
 import LabelPreview from '../components/LabelPreview'
@@ -19,6 +19,7 @@ export default function PrintLabel() {
     date_format: 'dd/MM/yyyy',
     address: '',
     phone: '',
+    whatsapp: '',
     username: 'admin',
     password: 'admin',
     logo: '',
@@ -53,8 +54,8 @@ export default function PrintLabel() {
   const minExpDate = format(addDays(new Date(mfgDate), 1), 'yyyy-MM-dd')
 
 
-  // Load settings and stock on mount
-  useEffect(() => {
+  // Load settings (used on mount and whenever Settings are saved elsewhere)
+  const loadSettings = useCallback(() => {
     window.electron.db.getSettings().then(s => {
       const appSettings = s as AppSettings
       setSettings(appSettings)
@@ -67,8 +68,15 @@ export default function PrintLabel() {
       })
       setLabelFieldsLoaded(true)
     })
-    window.electron.db.getStockSummary().then(s => setStockSummaries(s as StockSummary[]))
   }, [])
+
+  // Load settings and stock on mount; refresh settings when saved in Settings page
+  useEffect(() => {
+    loadSettings()
+    window.electron.db.getStockSummary().then(s => setStockSummaries(s as StockSummary[]))
+    window.addEventListener('settingsUpdated', loadSettings)
+    return () => window.removeEventListener('settingsUpdated', loadSettings)
+  }, [loadSettings])
 
   // Auto-save label fields to DB whenever they change (debounced)
   useEffect(() => {
@@ -205,12 +213,27 @@ export default function PrintLabel() {
             />
           </div>
           <div>
-            <label className="block text-slate-400 text-xs mb-1">Phone</label>
+            <label className="flex items-center gap-1 text-slate-400 text-xs mb-1">
+              <Phone size={11} />
+              Call Number
+            </label>
             <input
               className="input-field w-full text-sm py-1"
               value={settings.phone}
               onChange={e => setSettings(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="Phone (optional)"
+              placeholder="Call number (optional)"
+            />
+          </div>
+          <div>
+            <label className="flex items-center gap-1 text-slate-400 text-xs mb-1">
+              <MessageCircle size={11} className="text-emerald-400" />
+              WhatsApp Number
+            </label>
+            <input
+              className="input-field w-full text-sm py-1"
+              value={settings.whatsapp}
+              onChange={e => setSettings(prev => ({ ...prev, whatsapp: e.target.value }))}
+              placeholder="WhatsApp number (optional)"
             />
           </div>
         </div>
