@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import JsBarcode from 'jsbarcode'
 import { format } from 'date-fns'
 import type { Product, AppSettings } from '../types'
-import { DEFAULT_LABEL_FIELDS, type LabelFields } from '../utils/print'
+import { DEFAULT_LABEL_FIELDS, PHONE_ICON_PATH, WHATSAPP_ICON_PATH, type LabelFields } from '../utils/print'
 
 interface Props {
   product: Product | null
@@ -87,9 +87,27 @@ export default function LabelPreview({ product, settings, serialNumber, mfgDate,
                 {settings.address}
               </div>
             )}
-            {settings.phone && (
-              <div className="text-gray-500" style={{ fontSize: fs('4.5px', '7px') }}>
-                {settings.phone}
+            {(settings.phone || settings.whatsapp) && (
+              <div
+                className="flex justify-center items-center flex-wrap text-gray-600"
+                style={{ gap: fs('5px', '8px'), fontSize: fs('4.5px', '7px'), marginTop: '1px' }}
+              >
+                {settings.phone && (
+                  <span className="inline-flex items-center" style={{ gap: '2px' }}>
+                    <svg viewBox="0 0 24 24" fill="#444" style={{ width: fs('6px', '9px'), height: fs('6px', '9px'), flexShrink: 0 }}>
+                      <path d={PHONE_ICON_PATH} />
+                    </svg>
+                    <span>{settings.phone}</span>
+                  </span>
+                )}
+                {settings.whatsapp && (
+                  <span className="inline-flex items-center" style={{ gap: '2px' }}>
+                    <svg viewBox="0 0 24 24" fill="#25D366" style={{ width: fs('6px', '9px'), height: fs('6px', '9px'), flexShrink: 0 }}>
+                      <path d={WHATSAPP_ICON_PATH} />
+                    </svg>
+                    <span>{settings.whatsapp}</span>
+                  </span>
+                )}
               </div>
             )}
           </div>

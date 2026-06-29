@@ -23,6 +23,7 @@ const settings: AppSettings = {
   date_format: 'dd/MM/yyyy',
   address: '123 Main St',
   phone: '+94 77 123 4567',
+  whatsapp: '+94 76 111 1111',
   username: 'admin',
   password: 'admin',
   logo: '',
@@ -114,6 +115,11 @@ describe('LabelPreview — shop header', () => {
   it('shows phone when set', () => {
     renderPreview({ phone: '+94 77 123 4567' })
     expect(screen.getByText('+94 77 123 4567')).toBeInTheDocument()
+  })
+
+  it('shows whatsapp number when set', () => {
+    renderPreview({ whatsapp: '+94 76 111 1111' })
+    expect(screen.getByText('+94 76 111 1111')).toBeInTheDocument()
   })
 
   it('omits address when empty', () => {

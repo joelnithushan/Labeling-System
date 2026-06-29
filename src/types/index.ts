@@ -32,6 +32,7 @@ export interface AppSettings {
   date_format: string
   address: string
   phone: string
+  whatsapp: string
   username: string
   password: string
   logo: string
