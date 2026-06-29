@@ -32,6 +32,7 @@ const settings: AppSettings = {
   date_format: 'dd/MM/yyyy',
   address: '123 Main St',
   phone: '+94 77 000 0000',
+  whatsapp: '+94 76 111 1111',
   username: 'admin',
   password: 'admin',
   logo: '',

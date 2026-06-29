@@ -77,6 +77,7 @@ export function initSchema(db: Database.Database) {
     INSERT OR IGNORE INTO settings VALUES ('date_format', 'dd/MM/yyyy');
     INSERT OR IGNORE INTO settings VALUES ('address', '');
     INSERT OR IGNORE INTO settings VALUES ('phone', '');
+    INSERT OR IGNORE INTO settings VALUES ('whatsapp', '');
     INSERT OR IGNORE INTO settings VALUES ('username', 'admin');
     INSERT OR IGNORE INTO settings VALUES ('password', 'admin');
     INSERT OR IGNORE INTO settings VALUES ('logo', '');
