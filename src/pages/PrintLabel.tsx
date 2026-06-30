@@ -38,7 +38,7 @@ export default function PrintLabel() {
   const [status, setStatus] = useState<PrintStatus>('idle')
   const [statusMsg, setStatusMsg] = useState('')
   const [generatingSerial, setGeneratingSerial] = useState(false)
-  const [stockSummaries, setStockSummaries] = useState<StockSummary[]>([])
+
   const [labelFields, setLabelFields] = useState<LabelFields>(DEFAULT_LABEL_FIELDS)
   const [labelFieldsLoaded, setLabelFieldsLoaded] = useState(false)
   const settingsRef = useRef<AppSettings | null>(null)
@@ -46,7 +46,7 @@ export default function PrintLabel() {
   const [logoSize, setLogoSize] = useState(85)
 
   const selectedProduct = products.find(p => p.id === selectedId) ?? null
-  const currentStock = stockSummaries.find(s => s.product_id === selectedId)?.current_stock ?? null
+
 
   const shelfDays = selectedProduct?.shelf_life_days ?? 180
   const autoExpDate = addDays(new Date(mfgDate), Math.max(shelfDays, 1))
@@ -70,10 +70,9 @@ export default function PrintLabel() {
     })
   }, [])
 
-  // Load settings and stock on mount; refresh settings when saved in Settings page
+  // Load settings on mount; refresh settings when saved in Settings page
   useEffect(() => {
     loadSettings()
-    window.electron.db.getStockSummary().then(s => setStockSummaries(s as StockSummary[]))
     window.addEventListener('settingsUpdated', loadSettings)
     return () => window.removeEventListener('settingsUpdated', loadSettings)
   }, [loadSettings])
@@ -93,16 +92,7 @@ export default function PrintLabel() {
     return () => clearTimeout(timer)
   }, [labelFields, labelFieldsLoaded])
 
-  // Auto-fill quantity from current stock when product changes
-  useEffect(() => {
-    if (selectedId === '') return
-    const stock = stockSummaries.find(s => s.product_id === selectedId)
-    if (stock && stock.current_stock > 0) {
-      setQuantity(stock.current_stock)
-    } else {
-      setQuantity(1)
-    }
-  }, [selectedId, stockSummaries])
+
 
   // Clear expiry override if it becomes invalid when mfg date changes
   useEffect(() => {
@@ -313,12 +303,6 @@ export default function PrintLabel() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-slate-300 text-sm">Quantity (copies)</label>
-            {currentStock !== null && (
-              <span className={`flex items-center gap-1 text-xs font-medium ${currentStock <= 0 ? 'text-red-400' : currentStock <= 10 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                <Package size={12} />
-                Stock: {currentStock}
-              </span>
-            )}
           </div>
           <input
             type="number"
@@ -328,9 +312,6 @@ export default function PrintLabel() {
             value={quantity}
             onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
           />
-          {currentStock !== null && currentStock <= 0 && (
-            <p className="text-red-400 text-xs mt-1">This product is out of stock.</p>
-          )}
         </div>
 
 

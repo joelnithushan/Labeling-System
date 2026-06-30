@@ -75,11 +75,7 @@ function registerIpcHandlers() {
   })
 
   ipcMain.handle('db:addBarcode', (_, data) => {
-    const result = insertBarcode(getDb(), data)
-    if (data.product_id != null) {
-      autoDeductStock(getDb(), data.product_id, data.quantity || 1)
-    }
-    return result
+    return insertBarcode(getDb(), data)
   })
 
   ipcMain.handle('db:getNextSequence', (_, category, date) => {
