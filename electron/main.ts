@@ -119,7 +119,7 @@ function registerIpcHandlers() {
       filters: [{ name: 'CSV Files', extensions: ['csv'] }],
     })
     if (canceled || !filePath) return { success: false }
-    fs.writeFileSync(filePath, csv, 'utf-8')
+    fs.writeFileSync(filePath, '\ufeff' + csv, 'utf-8')
     shell.showItemInFolder(filePath)
     return { success: true, filePath }
   })
@@ -132,7 +132,7 @@ function registerIpcHandlers() {
       filters: [{ name: 'CSV Files', extensions: ['csv'] }],
     })
     if (canceled || !filePath) return { success: false }
-    fs.writeFileSync(filePath, csv, 'utf-8')
+    fs.writeFileSync(filePath, '\ufeff' + csv, 'utf-8')
     shell.showItemInFolder(filePath)
     return { success: true, filePath }
   })
