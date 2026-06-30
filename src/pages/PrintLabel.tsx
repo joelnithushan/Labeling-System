@@ -125,6 +125,7 @@ export default function PrintLabel() {
 
   async function handlePrint() {
     if (!selectedProduct || !serialNumber) return
+    const qtyVal = Number(quantity) || 1
     setStatus('printing')
     setStatusMsg('')
 
@@ -135,7 +136,7 @@ export default function PrintLabel() {
         serialNumber,
         mfgDate: new Date(mfgDate),
         expDate,
-        quantity,
+        quantity: qtyVal,
         labelFields,
         logoOpacity,
         logoSize,
@@ -151,7 +152,7 @@ export default function PrintLabel() {
         price: selectedProduct.price,
         serial_number: serialNumber,
         barcode_value: serialNumber,
-        quantity,
+        quantity: qtyVal,
         mfg_date: format(new Date(mfgDate), 'dd/MM/yyyy'),
         exp_date: format(expDate, 'dd/MM/yyyy'),
       })
@@ -161,11 +162,12 @@ export default function PrintLabel() {
         html,
         printerName: settings.printer_name,
         labelSize: settings.label_size,
+        copies: qtyVal,
       })
 
       if (result.success) {
         setStatus('success')
-        setStatusMsg(`Printed ${quantity} label${quantity > 1 ? 's' : ''} successfully.`)
+        setStatusMsg(`Printed ${qtyVal} label${qtyVal > 1 ? 's' : ''} successfully.`)
         // Regenerate serial for next print
         refreshSerial()
       } else {
