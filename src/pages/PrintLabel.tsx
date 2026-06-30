@@ -33,7 +33,7 @@ export default function PrintLabel() {
   const [selectedId, setSelectedId] = useState<number | ''>('')
   const [mfgDate, setMfgDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [expDateOverride, setExpDateOverride] = useState('')
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState<number | ''>(1)
   const [serialNumber, setSerialNumber] = useState('')
   const [status, setStatus] = useState<PrintStatus>('idle')
   const [statusMsg, setStatusMsg] = useState('')
@@ -93,6 +93,14 @@ export default function PrintLabel() {
   }, [labelFields, labelFieldsLoaded])
 
 
+
+  // Reset quantity to 1 when product changes if it's currently empty, otherwise keep user input
+  useEffect(() => {
+    if (selectedId === '') return
+    if (quantity === '') {
+      setQuantity(1)
+    }
+  }, [selectedId])
 
   // Clear expiry override if it becomes invalid when mfg date changes
   useEffect(() => {
@@ -170,7 +178,7 @@ export default function PrintLabel() {
     }
   }
 
-  const canPrint = !!selectedProduct && !!serialNumber && !generatingSerial && status !== 'printing'
+  const canPrint = !!selectedProduct && !!serialNumber && !generatingSerial && status !== 'printing' && typeof quantity === 'number' && quantity >= 1
 
   return (
     <div className="p-6 flex gap-6 h-[calc(100vh-64px)] min-w-0">
@@ -310,7 +318,15 @@ export default function PrintLabel() {
             max={999}
             className="input-field w-full"
             value={quantity}
-            onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={e => {
+              const val = e.target.value
+              if (val === '') {
+                setQuantity('')
+              } else {
+                const parsed = parseInt(val, 10)
+                setQuantity(isNaN(parsed) ? '' : parsed)
+              }
+            }}
           />
         </div>
 
