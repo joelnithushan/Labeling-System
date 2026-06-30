@@ -75,11 +75,7 @@ function registerIpcHandlers() {
   })
 
   ipcMain.handle('db:addBarcode', (_, data) => {
-    const result = insertBarcode(getDb(), data)
-    if (data.product_id != null) {
-      autoDeductStock(getDb(), data.product_id, data.quantity || 1)
-    }
-    return result
+    return insertBarcode(getDb(), data)
   })
 
   ipcMain.handle('db:getNextSequence', (_, category, date) => {
@@ -119,7 +115,7 @@ function registerIpcHandlers() {
       filters: [{ name: 'CSV Files', extensions: ['csv'] }],
     })
     if (canceled || !filePath) return { success: false }
-    fs.writeFileSync(filePath, csv, 'utf-8')
+    fs.writeFileSync(filePath, '\ufeff' + csv, 'utf-8')
     shell.showItemInFolder(filePath)
     return { success: true, filePath }
   })
@@ -132,7 +128,7 @@ function registerIpcHandlers() {
       filters: [{ name: 'CSV Files', extensions: ['csv'] }],
     })
     if (canceled || !filePath) return { success: false }
-    fs.writeFileSync(filePath, csv, 'utf-8')
+    fs.writeFileSync(filePath, '\ufeff' + csv, 'utf-8')
     shell.showItemInFolder(filePath)
     return { success: true, filePath }
   })
@@ -145,7 +141,7 @@ function registerIpcHandlers() {
     return win.webContents.getPrintersAsync()
   })
 
-  ipcMain.handle('print:label', async (_, { html, printerName, labelSize }) => {
+  ipcMain.handle('print:label', async (_, { html, printerName, labelSize, copies }) => {
     return new Promise<{ success: boolean; error?: string }>((resolve) => {
       const printWin = new BrowserWindow({
         width: 600,
@@ -201,6 +197,7 @@ function registerIpcHandlers() {
             deviceName: printerName || undefined,
             pageSize: { width: wMm * 1000, height: hMm * 1000 },
             margins: { marginType: 'none' },
+            copies: copies || 1,
           },
           (success, reason) => {
             printWin.destroy()
