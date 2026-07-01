@@ -38,6 +38,7 @@ export default function PrintLabel() {
   const [status, setStatus] = useState<PrintStatus>('idle')
   const [statusMsg, setStatusMsg] = useState('')
   const [generatingSerial, setGeneratingSerial] = useState(false)
+  const [stockSummaries, setStockSummaries] = useState<{ product_id: number; current_stock: number }[]>([])
 
   const [labelFields, setLabelFields] = useState<LabelFields>(DEFAULT_LABEL_FIELDS)
   const [labelFieldsLoaded, setLabelFieldsLoaded] = useState(false)
@@ -46,6 +47,9 @@ export default function PrintLabel() {
   const [logoSize, setLogoSize] = useState(85)
 
   const selectedProduct = products.find(p => p.id === selectedId) ?? null
+  const currentStock = typeof selectedId === 'number'
+    ? (stockSummaries.find(s => s.product_id === selectedId)?.current_stock ?? null)
+    : null
 
 
   const shelfDays = selectedProduct?.shelf_life_days ?? 180
@@ -76,6 +80,13 @@ export default function PrintLabel() {
     window.addEventListener('settingsUpdated', loadSettings)
     return () => window.removeEventListener('settingsUpdated', loadSettings)
   }, [loadSettings])
+
+  // Fetch stock summary for read-only display (no writes, no deductions)
+  useEffect(() => {
+    window.electron.db.getStockSummary().then(s =>
+      setStockSummaries((s as { product_id: number; current_stock: number }[]))
+    )
+  }, [selectedId])
 
   // Auto-save label fields to DB whenever they change (debounced)
   useEffect(() => {
@@ -313,6 +324,17 @@ export default function PrintLabel() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-slate-300 text-sm">Quantity (copies)</label>
+            {currentStock !== null && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                currentStock <= 0
+                  ? 'bg-red-900/40 text-red-400'
+                  : currentStock <= 10
+                  ? 'bg-amber-900/40 text-amber-400'
+                  : 'bg-emerald-900/30 text-emerald-400'
+              }`}>
+                Stock: {currentStock}
+              </span>
+            )}
           </div>
           <input
             type="number"
