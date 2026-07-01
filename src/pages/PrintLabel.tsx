@@ -324,6 +324,17 @@ export default function PrintLabel() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-slate-300 text-sm">Quantity (copies)</label>
+            {currentStock !== null && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                currentStock <= 0
+                  ? 'bg-red-900/40 text-red-400'
+                  : currentStock <= 10
+                  ? 'bg-amber-900/40 text-amber-400'
+                  : 'bg-emerald-900/30 text-emerald-400'
+              }`}>
+                Stock: {currentStock}
+              </span>
+            )}
           </div>
           <input
             type="number"
